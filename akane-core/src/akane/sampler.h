@@ -1,16 +1,26 @@
 #pragma once
-#include "akane/typedef.h"
-#include "akane/geometry.h"
+#include "akane/math/float_type.h"
+#include "akane/math/geometry.h"
 
 namespace akane
 {
-	class Sampler
-	{
+    class Sampler
+    {
     public:
         Sampler()          = default;
         virtual ~Sampler() = default;
 
-		virtual akFloat Get1D() = 0;
+        // get a sample of x where x is in [0, 1)
+        virtual akFloat Get1D() = 0;
+
+        // get a sample of (x, y) where both x, y are in [0, 1)
         virtual Point2f Get2D() = 0;
-	};
-}
+    };
+
+    std::unique_ptr<Sampler> CreateRandomSampler();
+
+    std::unique_ptr<Sampler> CreateDefaultSampler()
+    {
+        return CreateRandomSampler();
+    }
+} // namespace akane

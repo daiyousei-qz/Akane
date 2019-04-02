@@ -1,5 +1,5 @@
 #include "akane/sampler.h"
-#include "akane/random.h"
+#include "akane/common/random.h"
 #include <memory>
 
 using namespace std;

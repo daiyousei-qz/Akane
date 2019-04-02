@@ -1,16 +1,13 @@
 #pragma once
-#include "akane/typedef.h"
+#include "akane/math/float_type.h"
+#include "akane/math/geometry.h"
 #include <array>
 
 namespace akane
 {
-	template <size_t NSample>
-	class BasicSpectrum
-	{
+    // RGB
+    using RGBSpectrum = Vec3f;
+	
+	using Spectrum = RGBSpectrum;
 
-		std::array<akFloat, NSample> data;
-	};
-
-	// RGB
-	using Spectrum = BasicSpectrum<3>;
-}
+} // namespace akane

@@ -1,8 +1,8 @@
 #pragma once
-#include "akane/typedef.h"
-#include "akane/geometry.h"
-#include "akane/random.h"
-#include "akane/memory_arena.h"
+#include "akane/math/float_type.h"
+#include "akane/math/geometry.h"
+#include "akane/common/random.h"
+#include "akane/common/memory_arena.h"
 
 namespace akane
 {

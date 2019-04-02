@@ -1,5 +1,5 @@
 #pragma once
-#include "akane/typedef.h"
+#include "akane/math/float_type.h"
 #include <random>
 
 namespace akane
@@ -58,16 +58,11 @@ namespace akane
     public:
         bool SampleBool(akFloat prob) { return UniformReal() < prob; }
 
-        int UniformInt(int min = 0, int max = 1)
-        {
-            std::uniform_int_distribution<int> distri{min, max};
-            return distri(rnd_);
-        }
+        int UniformInt(int min = 0, int max = 1) { return 0; }
 
         akFloat UniformReal(akFloat min = kFloatZero, akFloat max = kFloatOne)
         {
-            std::uniform_real_distribution<akFloat> distri{min, max};
-            return distri(rnd_);
+            return 0;
         }
 
     private:
