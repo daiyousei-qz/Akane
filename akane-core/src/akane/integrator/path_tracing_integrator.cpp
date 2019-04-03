@@ -9,6 +9,7 @@ namespace akane
         virtual Spectrum Li(RenderingContext& ctx, Sampler& sampler,
                             const Scene& scene, const Ray& ray) override
         {
+			
             return Spectrum();
         }
     };

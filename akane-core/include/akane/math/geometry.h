@@ -16,6 +16,7 @@ namespace akane
 
         constexpr Vec() noexcept = default;
         constexpr Vec(T value) noexcept { data.fill(value); }
+        constexpr Vec(std::array<T, N> xs) noexcept { data = xs; }
         constexpr Vec(std::initializer_list<T> init) noexcept
         {
             assert(init.size() <= N);
@@ -70,7 +71,32 @@ namespace akane
             auto self = *this;
             return (self * other).Sum();
         }
-    }; // namespace akane
+
+        Vec Cross(Vec other) const noexcept
+        {
+            const auto& a = data;
+            const auto& b = other.data;
+
+            if constexpr (N == 1)
+            { 
+				static_assert(std::false_type::value, "not implemented");
+			}
+            else if constexpr (N == 2)
+            {
+                static_assert(std::false_type::value, "not implemented");
+            }
+            else if constexpr (N == 3)
+            {
+                return Vec{std::array<T, N>{a[1] * b[2] - a[2] * b[1],
+                                            a[2] * b[0] - a[0] * b[2],
+                                            a[0] * b[1] - a[1] * b[0]}};
+            }
+            else
+            {
+                static_assert(std::false_type::value, "not implemented");
+            }
+        }
+    };
 
     using Vec2f   = Vec<akFloat, 2>;
     using Vec3f   = Vec<akFloat, 3>;
