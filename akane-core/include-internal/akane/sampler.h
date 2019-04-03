@@ -7,6 +7,8 @@ namespace akane
     class Sampler
     {
     public:
+        using Ptr = std::unique_ptr<Sampler>;
+
         Sampler()          = default;
         virtual ~Sampler() = default;
 
@@ -17,10 +19,5 @@ namespace akane
         virtual Point2f Get2D() = 0;
     };
 
-    std::unique_ptr<Sampler> CreateRandomSampler();
-
-    std::unique_ptr<Sampler> CreateDefaultSampler()
-    {
-        return CreateRandomSampler();
-    }
+    Sampler::Ptr CreateRandomSampler();
 } // namespace akane

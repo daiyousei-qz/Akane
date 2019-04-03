@@ -22,7 +22,7 @@ namespace akane
         RandomSource rnd_;
     };
 
-    unique_ptr<Sampler> CreateRandomSampler()
+    Sampler::Ptr CreateRandomSampler()
     {
         return make_unique<RandomSampler>();
     }

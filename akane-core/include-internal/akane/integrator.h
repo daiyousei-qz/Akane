@@ -9,15 +9,12 @@ namespace akane
     class Integrator
     {
     public:
+        using Ptr = std::unique_ptr<Integrator>;
+
         // compute radiance along a camera ray
         virtual Spectrum Li(RenderingContext& ctx, Sampler& sampler,
-                            const Scene& scene, const Ray& ray);
+                            const Scene& scene, const Ray& ray) = 0;
     };
 
-    std::unique_ptr<Integrator> CreatePathTracingIntegrator();
-
-    std::unique_ptr<Integrator> CreateDefaultIntegrator()
-    {
-        return CreatePathTracingIntegrator();
-    }
+    Integrator::Ptr CreatePathTracingIntegrator();
 } // namespace akane
