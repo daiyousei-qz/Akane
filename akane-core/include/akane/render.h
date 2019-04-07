@@ -9,22 +9,23 @@
 namespace akane
 {
     inline Canvas ExecuteRendering(const Scene& scene, const Camera& camera,
-                                   int width, int height, int sample_per_pixel)
+                                   Point2i resolution, int sample_per_pixel)
     {
-        Canvas canvas{width, height};
+        Canvas canvas{resolution.X(), resolution.Y()};
         RenderingContext ctx;
 
+        // auto integrator = CreateDirectIntersectionIntegrator();
         auto integrator = CreatePathTracingIntegrator();
         auto sampler    = CreateRandomSampler();
 
-        for (int y = 0; y < height; ++y)
+        for (int y = 0; y < resolution.Y(); ++y)
         {
-            for (int x = 0; x < width; ++x)
+            for (int x = 0; x < resolution.X(); ++x)
             {
                 Spectrum acc = kFloatZero;
                 for (int i = 0; i < sample_per_pixel; ++i)
                 {
-                    auto ray = camera.SpawnRay(*sampler, width, height, x, y);
+                    auto ray      = camera.SpawnRay(resolution, {x, y}, sampler->Get2D());
                     auto radiance = integrator->Li(ctx, *sampler, scene, ray);
 
                     acc += radiance;
@@ -38,4 +39,3 @@ namespace akane
     }
 
 } // namespace akane
-

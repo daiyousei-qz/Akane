@@ -58,11 +58,11 @@ namespace akane
     public:
         bool SampleBool(akFloat prob) { return UniformReal() < prob; }
 
-        int UniformInt(int min = 0, int max = 1) { return 0; }
+        //int UniformInt(int min = 0, int max = 1) { return 0; }
 
         akFloat UniformReal(akFloat min = kFloatZero, akFloat max = kFloatOne)
         {
-            return 0;
+			return static_cast<akFloat>(rand()) / RAND_MAX;
         }
 
     private:

@@ -16,5 +16,6 @@ namespace akane
                             const Scene& scene, const Ray& ray) = 0;
     };
 
-    Integrator::Ptr CreatePathTracingIntegrator();
+	Integrator::Ptr CreateDirectIntersectionIntegrator();
+	Integrator::Ptr CreatePathTracingIntegrator();
 } // namespace akane

@@ -1,6 +1,6 @@
 #pragma once
 #include "akane/math/float_type.h"
-#include "akane/math/geometry.h"
+#include "akane/math/vector.h"
 
 namespace akane
 {

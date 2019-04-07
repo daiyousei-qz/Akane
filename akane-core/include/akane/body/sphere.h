@@ -1,13 +1,18 @@
+#pragma once
+
 #include "akane/core.h"
 #include "akane/body.h"
+#include "akane/material.h"
 
 namespace akane
 {
     class Sphere : public Body
     {
     public:
-        Sphere(Vec3f center, akFloat radius)
-            : center_(center), radius_(radius){};
+        Sphere(const Material* material, Vec3f center, akFloat radius)
+            : material_(material), center_(center), radius_(radius)
+        {
+        }
 
         bool Intersect(const Ray& ray, akFloat t_min, akFloat t_max,
                        IntersectionInfo& info) const override
@@ -36,14 +41,23 @@ namespace akane
 
             if (t < t_min || t > t_max) { return false; }
 
-            info.t      = t;
-            info.point  = ray_o + t * ray_d;
-            info.normal = (info.point - center_) / radius_;
+            info.t        = t;
+            info.point    = ray_o + t * ray_d;
+            info.uv       = {0, 0};
+            info.normal   = (info.point - center_).Normalized();
+            info.material = material_;
             return true;
         }
 
     private:
+        const Material* material_;
         Vec3f center_;
         akFloat radius_;
     };
+
+    inline Body::Ptr CreateSphereBody(const Material* material, Vec3f center,
+                                      akFloat radius)
+    {
+        return std::make_unique<Sphere>(material, center, radius);
+    }
 } // namespace akane

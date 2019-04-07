@@ -19,7 +19,7 @@ IndentWidth: 4
 NamespaceIndentation: All
 IndentCaseLabels: false
 AccessModifierOffset: -4
-AllowShortBlocksOnASingleLine : true
-AllowShortIfStatementsOnASingleLine: true
+AllowShortBlocksOnASingleLine : false
+AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine : true
-AllowShortFunctionsOnASingleLine : InlineOnly
+AllowShortFunctionsOnASingleLine : false

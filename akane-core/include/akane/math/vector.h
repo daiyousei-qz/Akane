@@ -10,29 +10,37 @@ namespace akane
 {
     template <typename T, size_t N> struct Vec
     {
-        static_assert(std::is_floating_point_v<T>);
+        static_assert(std::is_arithmetic_v<T>);
 
         std::array<T, N> data;
 
         constexpr Vec() noexcept = default;
-        constexpr Vec(T value) noexcept { data.fill(value); }
-        constexpr Vec(std::array<T, N> xs) noexcept { data = xs; }
-        constexpr Vec(std::initializer_list<T> init) noexcept
+        constexpr Vec(T value) noexcept
         {
-            assert(init.size() <= N);
-
-            auto iter_init = init.begin();
-            for (auto& item : data)
-            {
-                if (iter_init != init.end())
-                {
-                    item = *iter_init;
-                    ++iter_init;
-                }
-            }
+            data.fill(value);
+        }
+        constexpr Vec(std::array<T, N> xs) noexcept
+        {
+            data = xs;
         }
 
-        constexpr T& operator[](size_t index) noexcept { return data[index]; }
+        constexpr Vec(T x, T y) : data{x, y}
+        {
+            static_assert(N == 2);
+        }
+        constexpr Vec(T x, T y, T z) : data{x, y, z}
+        {
+            static_assert(N == 3);
+        }
+        constexpr Vec(T x, T y, T z, T w) : data{x, y, z, w}
+        {
+            static_assert(N == 4);
+        }
+
+        constexpr T& operator[](size_t index) noexcept
+        {
+            return data[index];
+        }
         constexpr const T& operator[](size_t index) const noexcept
         {
             return data[index];
@@ -44,11 +52,39 @@ namespace akane
             return *this;
         }
 
-        constexpr auto begin() noexcept { return data.begin(); }
-        constexpr auto end() noexcept { return data.end(); }
+        constexpr auto begin() noexcept
+        {
+            return data.begin();
+        }
+        constexpr auto end() noexcept
+        {
+            return data.end();
+        }
 
-        constexpr auto begin() const noexcept { return data.begin(); }
-        constexpr auto end() const noexcept { return data.end(); }
+        constexpr auto begin() const noexcept
+        {
+            return data.begin();
+        }
+        constexpr auto end() const noexcept
+        {
+            return data.end();
+        }
+
+		constexpr T X() const noexcept
+		{
+			static_assert(N >= 1);
+			return data[0];
+		}
+		constexpr T Y() const noexcept
+		{
+			static_assert(N >= 2);
+			return data[1];
+		}
+		constexpr T Z() const noexcept
+		{
+			static_assert(N >= 3);
+			return data[2];
+		}
 
         T Sum() const noexcept
         {
@@ -60,11 +96,18 @@ namespace akane
 
         T Length() const noexcept
         {
+			static_assert(std::is_floating_point_v<T>);
+
             auto self = *this;
             return static_cast<T>(sqrt((self * self).Sum()));
         }
 
-        Vec Normalized() const noexcept { return *this / Length(); }
+        Vec Normalized() const noexcept
+        {
+			static_assert(std::is_floating_point_v<T>);
+
+			return *this / Length();
+        }
 
         T Dot(Vec other) const noexcept
         {
@@ -74,34 +117,25 @@ namespace akane
 
         Vec Cross(Vec other) const noexcept
         {
+            static_assert(N == 3,
+                          "cross product only works for 3-dimensional vectors");
+
             const auto& a = data;
             const auto& b = other.data;
 
-            if constexpr (N == 1)
-            { 
-				static_assert(std::false_type::value, "not implemented");
-			}
-            else if constexpr (N == 2)
-            {
-                static_assert(std::false_type::value, "not implemented");
-            }
-            else if constexpr (N == 3)
-            {
-                return Vec{std::array<T, N>{a[1] * b[2] - a[2] * b[1],
-                                            a[2] * b[0] - a[0] * b[2],
-                                            a[0] * b[1] - a[1] * b[0]}};
-            }
-            else
-            {
-                static_assert(std::false_type::value, "not implemented");
-            }
+            return Vec{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
+                       a[0] * b[1] - a[1] * b[0]};
         }
     };
 
-    using Vec2f   = Vec<akFloat, 2>;
-    using Vec3f   = Vec<akFloat, 3>;
     using Point2f = Vec<akFloat, 2>;
     using Point3f = Vec<akFloat, 3>;
+    using Point2i = Vec<int32_t, 2>;
+    using Point3i = Vec<int32_t, 3>;
+
+    using Vec2f = Vec<akFloat, 2>;
+    using Vec3f = Vec<akFloat, 3>;
+    using Vec4f = Vec<akFloat, 4>;
 
     template <typename T, size_t N>
     inline constexpr Vec<T, N> operator+(Vec<T, N> v) noexcept

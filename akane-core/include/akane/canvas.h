@@ -1,6 +1,8 @@
 #pragma once
 #include "akane/spectrum.h"
+#include "akane/external/svpng.inc"
 #include <vector>
+#include <string>
 #include <cassert>
 
 namespace akane
@@ -21,6 +23,25 @@ namespace akane
             assert(y >= 0 && y < height_);
 
             return pixels_[y * height_ + x];
+        }
+
+        void Finalize(const std::string& filename, akFloat gamma)
+        {
+            std::vector<uint8_t> graph;
+            for (const auto& pixel : pixels_)
+            {
+                for (int i = 0; i < 3; ++i)
+                {
+                    auto x = std::min(
+                        255,
+                        static_cast<int>(255.f * powf(pixel[i], 1 / gamma)));
+                    graph.push_back(x);
+                }
+            }
+
+            auto file = fopen(filename.c_str(), "wb");
+            svpng(file, width_, height_, graph.data(), 0);
+            fclose(file);
         }
 
     private:
