@@ -6,8 +6,7 @@ namespace akane
     AreaLight::AreaLight(GeometricPrimitive* primitive, Spectrum albedo)
         : primitive_(primitive), albedo_(albedo)
     {
-        AKANE_REQUIRE(primitive != nullptr &&
-                      primitive->GetAreaLight() == nullptr);
+        AKANE_REQUIRE(primitive != nullptr && primitive->GetAreaLight() == nullptr);
 
         primitive->RegisterLightSource(this);
     }
@@ -17,15 +16,13 @@ namespace akane
         return albedo_;
     }
 
-    void AreaLight::SampleLi(const Point2f& u, const IntersectionInfo& isect,
-                             Vec3f& wi_out, akFloat& pdf_out) const
+    VisibilityTester AreaLight::SampleLi(const Point2f& u, const IntersectionInfo& isect) const
     {
         Point3f point;
         akFloat pdf;
         primitive_->SampleP(u, point, pdf);
 
-        wi_out  = (isect.point - point).Normalized();
-        pdf_out = pdf;
+        return VisibilityTester{isect, point, pdf};
     }
     akFloat AreaLight::Power() const
     {

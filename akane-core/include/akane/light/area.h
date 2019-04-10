@@ -13,15 +13,14 @@ namespace akane
 
         Spectrum Eval(const Ray& ray) const override;
 
-        void SampleLi(const Point2f& u, const IntersectionInfo& isect,
-                      Vec3f& wi, akFloat& pdf) const override;
+        VisibilityTester SampleLi(const Point2f& u, const IntersectionInfo& isect) const override;
 
         akFloat Power() const override;
 
-		const GeometricPrimitive* GerPrimitive() const noexcept
-		{
-			return primitive_;
-		}
+        const GeometricPrimitive* GerPrimitive() const noexcept
+        {
+            return primitive_;
+        }
 
     private:
         Spectrum albedo_;
@@ -30,6 +29,6 @@ namespace akane
 
     inline Light::Ptr CreateAreaLight(GeometricPrimitive* primitive, Spectrum albedo)
     {
-		return std::make_unique<AreaLight>(primitive, albedo);
+        return std::make_unique<AreaLight>(primitive, albedo);
     }
 } // namespace akane

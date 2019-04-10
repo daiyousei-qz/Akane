@@ -7,8 +7,8 @@ namespace akane
 {
     class PathTracingIntegrator : public Integrator
     {
-        virtual Spectrum Li(RenderingContext& ctx, Sampler& sampler,
-                            const Scene& scene, const Ray& camera_ray) override
+        virtual Spectrum Li(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
+                            const Ray& camera_ray) override
         {
             Spectrum result  = kFloatZero;
             Spectrum contrib = kFloatOne;
@@ -30,6 +30,8 @@ namespace akane
                 }
 
                 // if the primitive emits light
+                // NOTE as light source is also explicit sampled, only camera ray needs accumulation
+				// TODO: specular reflection
                 auto area_light = isect.primitive->GetAreaLight();
                 if (area_light && bounce == 0)
                 {
@@ -45,42 +47,24 @@ namespace akane
                 // estimate direct lighting
                 for (const auto& light : scene.GetLights())
                 {
-					//break;
-					auto u = sampler.Get2D();
-                    Vec3f wi;
-                    akFloat pdf;
-                    light->SampleLi(u, isect, wi, pdf);
+                    auto vtest = light->SampleLi(sampler.Get2D(), isect);
 
-					Point3f p;
-					akFloat pdf_;
-					reinterpret_cast<const AreaLight*>(light)->GerPrimitive()->SampleP(u, p, pdf_);
+                    if (vtest.Test(scene))
+                    {
+                        auto shadow_ray = vtest.ShadowRay();
 
-					auto shadow_ray = Ray{ isect.point, -wi };
-					IntersectionInfo isect2;
-					if (!scene.GetWorld().Intersect(shadow_ray, 0.0001f, 10000.f, isect2))
-					{
-						continue;
-					}
+                        auto ld = light->Eval(shadow_ray) *
+                                  isect.material->ComputeBSDF(isect, ray.d, shadow_ray.d) /
+                                  vtest.Pdf();
 
-					auto dist = (p - isect2.point).Length();
-					if (dist < 0.1)
-					{
-						auto ld = light->Eval(shadow_ray) *
-							isect.material->ComputeBSDF(isect, ray.d, wi) / pdf_;
-
-						result += contrib * ld;
-					}
-					else
-					{
-						result += contrib * 0.0000000001f;
-					}
+                        result += contrib * ld;
+                    }
                 }
 
                 // calculate scattered light, i.e. -wi
                 Spectrum attenuation;
                 Ray scattered;
-                if (!isect.material->Scatter(ray, isect, sampler.Get2D(),
-                                             attenuation, scattered))
+                if (!isect.material->Scatter(ray, isect, sampler.Get2D(), attenuation, scattered))
                 {
                     // energy absorbed
                     break;

@@ -170,7 +170,7 @@ int main()
 
     auto s0 = scene.AddSphere(lambertian0, {0, 0, 1}, 1);
 	auto s1 = scene.AddSphere(lambertian1, { 0, -2, 0.7f }, 0.7f);
-	auto s2 = scene.AddSphere(lambertian0, {0, 0, 7.f}, 3.f);
+	auto s2 = scene.AddSphere(lambertian0, {0, 0, 7.f}, 0.3f);
 
     // ground
     scene.AddSphere(lambertian1, {0, 0, -1e5}, 1e5);

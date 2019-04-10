@@ -11,20 +11,19 @@ namespace akane
         {
         }
 
-        virtual Spectrum Eval(const Ray& ray) const
+        Spectrum Eval(const Ray& ray) const override
         {
             auto contrib = -direction_.Dot(ray.d);
 
             return contrib > 0 ? albedo_ * contrib : Spectrum{kFloatZero};
         }
 
-        virtual void SampleLi(const Point2f& u, const IntersectionInfo& isect,
-                              Vec3f& wi_out, akFloat& pdf_out) const
+        VisibilityTester SampleLi(const Point2f& u, const IntersectionInfo& isect) const override
         {
             AKANE_NO_IMPL();
         }
 
-        virtual akFloat Power() const
+        akFloat Power() const override
         {
             AKANE_NO_IMPL();
         }
@@ -36,6 +35,6 @@ namespace akane
 
     inline Light::Ptr CreateInfiniteLight(const Vec3f& direction, const Spectrum& albedo)
     {
-		return std::make_unique<InfiniteLight>(direction, albedo);
+        return std::make_unique<InfiniteLight>(direction, albedo);
     }
 } // namespace akane
