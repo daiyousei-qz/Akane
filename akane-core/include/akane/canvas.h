@@ -22,7 +22,7 @@ namespace akane
             assert(x >= 0 && x < width_);
             assert(y >= 0 && y < height_);
 
-            return pixels_[y * height_ + x];
+            return pixels_[y * width_ + x];
         }
 
         void Finalize(const std::string& filename, akFloat gamma)

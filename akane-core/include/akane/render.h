@@ -14,7 +14,7 @@ namespace akane
         Canvas canvas{resolution.X(), resolution.Y()};
         RenderingContext ctx;
 
-        // auto integrator = CreateDirectIntersectionIntegrator();
+        //auto integrator = CreateDirectIntersectionIntegrator();
         auto integrator = CreatePathTracingIntegrator();
         auto sampler    = CreateRandomSampler();
 

@@ -6,7 +6,7 @@
 
 namespace akane
 {
-    class Camera
+    class Camera : public Object
     {
     public:
         using Ptr = std::unique_ptr<Camera>;

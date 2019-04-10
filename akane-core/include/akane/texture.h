@@ -5,7 +5,7 @@
 
 namespace akane
 {
-    class Texture
+    class Texture : public Object
     {
     public:
         using Ptr = std::unique_ptr<Texture>;
@@ -39,7 +39,7 @@ namespace akane
 
         Spectrum Value(const IntersectionInfo& isect) const noexcept override
         {
-            auto p      = 10.f * isect.point;
+            auto p      = 3.f * isect.point;
             auto choice = sin(p.X()) * sin(p.Y()) * sin(p.Z());
 
             if (choice > 0)

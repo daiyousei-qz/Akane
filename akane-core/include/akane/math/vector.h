@@ -94,6 +94,14 @@ namespace akane
             return result;
         }
 
+		T LengthSq() const noexcept
+		{
+			static_assert(std::is_floating_point_v<T>);
+
+			auto self = *this;
+			return (self * self).Sum();
+		}
+
         T Length() const noexcept
         {
 			static_assert(std::is_floating_point_v<T>);
@@ -108,6 +116,12 @@ namespace akane
 
 			return *this / Length();
         }
+
+		T Distance(Vec other) const noexcept
+		{
+			auto self = *this;
+			return (self - other).Length();
+		}
 
         T Dot(Vec other) const noexcept
         {

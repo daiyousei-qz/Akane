@@ -6,7 +6,7 @@
 
 namespace akane
 {
-    class Integrator
+    class Integrator : public Object
     {
     public:
         using Ptr = std::unique_ptr<Integrator>;

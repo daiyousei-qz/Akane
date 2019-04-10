@@ -1,10 +1,13 @@
 #pragma once
+#include "akane/common/object.h"
+#include "akane/common/language_utils.h"
 #include "akane/math/float_type.h"
 #include "akane/math/vector.h"
 #include "akane/common/memory_arena.h"
 
 namespace akane
 {
+	class Primitive;
 	class Material;
 
     struct Ray
@@ -30,6 +33,12 @@ namespace akane
 		Point2f uv;
 
         Vec3f normal;
+
+		// if ray comes from 
+		bool internal_ray;
+
+		// primitive that ray hits
+		const Primitive* primitive;
 
 		const Material* material;
 	};

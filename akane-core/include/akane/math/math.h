@@ -6,7 +6,8 @@
 
 namespace akane
 {
-    using std::abs;
+	using std::pow;
+	using std::abs;
     using std::max;
     using std::min;
     using std::sin;

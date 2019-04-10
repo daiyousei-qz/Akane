@@ -1,15 +1,16 @@
 #pragma once
 
+#include "akane/common/language_utils.h"
 #include "akane/core.h"
-#include "akane/body.h"
+#include "akane/primitive.h"
 #include <vector>
 
 namespace akane
 {
-    class NaiveComposite : public Body
+    class NaiveComposite : public Primitive
     {
     public:
-		void AddBody(Body* body)
+		void AddPrimitive(Primitive* body)
 		{
 			parts_.push_back(body);
 		}
@@ -35,6 +36,6 @@ namespace akane
         }
 
     private:
-        std::vector<Body*> parts_;
+        std::vector<Primitive*> parts_;
     };
 } // namespace akane
