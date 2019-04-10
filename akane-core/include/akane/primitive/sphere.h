@@ -56,14 +56,14 @@ namespace akane
 
         akFloat Area() const override
         {
-            return (4.f / 3.f) * kPI * radius_ * radius_ * radius_;
+            return 4.f* kPI* radius_* radius_;
         }
 
         void SampleP(const Point2f& u, Point3f& point_out,
                      akFloat& pdf_out) const override
         {
             point_out = SampleUniformSphere(u) * radius_ + center_;
-            pdf_out   = 1 / (4.f * kPI);
+            pdf_out   = 1 / Area();
         }
 
     private:

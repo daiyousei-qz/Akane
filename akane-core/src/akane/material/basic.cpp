@@ -3,15 +3,14 @@
 namespace akane
 {
     // assuming v and u is normalized
-    static void ComputeReflectedRay(const Vec3f& v, const Vec3f& n,
-                                    Vec3f& reflected) noexcept
+    static void ComputeReflectedRay(const Vec3f& v, const Vec3f& n, Vec3f& reflected) noexcept
     {
         reflected = v - 2.f * v.Dot(n) * n;
     }
 
     // assuming v and u is normalized
-    static bool ComputedRefractedRay(const Vec3f& v, const Vec3f& n,
-                                     akFloat n_ratio, Vec3f& refracted) noexcept
+    static bool ComputedRefractedRay(const Vec3f& v, const Vec3f& n, akFloat n_ratio,
+                                     Vec3f& refracted) noexcept
     {
         auto h            = v.Dot(n);
         auto discriminant = 1.f - n_ratio * n_ratio * (1.f - h * h);
@@ -45,15 +44,15 @@ namespace akane
             assert(texture != nullptr);
         }
 
-        Spectrum ComputeBSDF(const IntersectionInfo& isect, const Vec3f& wo,
-                             const Vec3f& wi) const noexcept override
+        Spectrum ComputeBSDF(const IntersectionInfo& isect, const Vec3f& wo, const Vec3f& wi) const
+            noexcept override
         {
             auto albedo = texture_->Value(isect);
 
-            return albedo * abs(isect.normal.Dot(wi));
+            return albedo / kPI * abs(isect.normal.Dot(wi));
             if (wi.Dot(wo) < 0)
             {
-                return albedo * abs(isect.normal.Dot(wi));
+                return albedo / kPI * abs(isect.normal.Dot(wi));
             }
             else
             {
@@ -62,9 +61,8 @@ namespace akane
             }
         }
 
-        bool Scatter(const Ray& ray, const IntersectionInfo& isect,
-                     const Point2f& sample, Spectrum& attenuation,
-                     Ray& scatter) const noexcept override
+        bool Scatter(const Ray& ray, const IntersectionInfo& isect, const Point2f& sample,
+                     Spectrum& attenuation, Ray& scatter) const noexcept override
         {
             auto albedo = texture_->Value(isect);
 
@@ -74,9 +72,8 @@ namespace akane
                 diffuse = -diffuse;
             }
 
-            attenuation = albedo / kPI * diffuse.Dot(isect.normal) /
-                          PdfUniformHemisphere();
-            scatter = Ray{isect.point, diffuse};
+            attenuation = albedo / kPI * diffuse.Dot(isect.normal) / PdfUniformHemisphere();
+            scatter     = Ray{isect.point, diffuse};
             return true;
         }
 
@@ -88,15 +85,14 @@ namespace akane
     class Metal : public Material
     {
     public:
-        Metal(const Texture* texture, akFloat fuzz)
-            : texture_(texture), fuzz_(fuzz)
+        Metal(const Texture* texture, akFloat fuzz) : texture_(texture), fuzz_(fuzz)
         {
             assert(texture != nullptr);
             assert(fuzz >= 0 && fuzz < 1);
         }
 
-        Spectrum ComputeBSDF(const IntersectionInfo& isect, const Vec3f& wo,
-                             const Vec3f& wi) const noexcept override
+        Spectrum ComputeBSDF(const IntersectionInfo& isect, const Vec3f& wo, const Vec3f& wi) const
+            noexcept override
         {
             auto albedo = texture_->Value(isect);
 
@@ -111,9 +107,8 @@ namespace akane
             }
         }
 
-        bool Scatter(const Ray& ray, const IntersectionInfo& isect,
-                     const Point2f& sample, Spectrum& attenuation,
-                     Ray& scatter) const noexcept override
+        bool Scatter(const Ray& ray, const IntersectionInfo& isect, const Point2f& sample,
+                     Spectrum& attenuation, Ray& scatter) const noexcept override
         {
             auto albedo = texture_->Value(isect);
 
@@ -148,15 +143,14 @@ namespace akane
             assert(refractive_index >= 1);
         }
 
-        Spectrum ComputeBSDF(const IntersectionInfo& isect, const Vec3f& wo,
-                             const Vec3f& wi) const noexcept override
+        Spectrum ComputeBSDF(const IntersectionInfo& isect, const Vec3f& wo, const Vec3f& wi) const
+            noexcept override
         {
             return Spectrum{kFloatZero};
         }
 
-        bool Scatter(const Ray& ray, const IntersectionInfo& isect,
-                     const Point2f& sample, Spectrum& attenuation,
-                     Ray& scatter) const noexcept override
+        bool Scatter(const Ray& ray, const IntersectionInfo& isect, const Point2f& sample,
+                     Spectrum& attenuation, Ray& scatter) const noexcept override
         {
             Vec3f reflected;
             ComputeReflectedRay(ray.d, isect.normal, reflected);
@@ -176,7 +170,7 @@ namespace akane
                 // material to medium
                 n_ratio             = refractive_index_;
                 transmission_normal = -isect.normal;
-                cosine = refractive_index_ * ray.d.Dot(isect.normal);
+                cosine              = refractive_index_ * ray.d.Dot(isect.normal);
             }
 
             akFloat reflect_prob = 1.f;
@@ -213,8 +207,7 @@ namespace akane
     {
         return std::make_unique<Metal>(texture, fuzz);
     }
-    Material::Ptr CreateDielectrics(const Texture* texture,
-                                    akFloat refractive_index)
+    Material::Ptr CreateDielectrics(const Texture* texture, akFloat refractive_index)
     {
         return std::make_unique<Dielectrics>(texture, refractive_index);
     }

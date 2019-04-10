@@ -5,6 +5,9 @@ using namespace std;
 
 namespace akane
 {
+    static constexpr int kMinBounce = 3;
+    static constexpr int kMaxBounce = 8;
+
     class PathTracingIntegrator : public Integrator
     {
         virtual Spectrum Li(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
@@ -14,7 +17,7 @@ namespace akane
             Spectrum contrib = kFloatOne;
 
             Ray ray = camera_ray;
-            for (int bounce = 0; bounce < 8; ++bounce)
+            for (int bounce = 0; bounce < kMaxBounce; ++bounce)
             {
                 IntersectionInfo isect;
                 if (!scene.GetWorld().Intersect(ray, 0.0001f, 10000.f, isect))
@@ -31,7 +34,7 @@ namespace akane
 
                 // if the primitive emits light
                 // NOTE as light source is also explicit sampled, only camera ray needs accumulation
-				// TODO: specular reflection
+                // TODO: specular reflection
                 auto area_light = isect.primitive->GetAreaLight();
                 if (area_light && bounce == 0)
                 {
@@ -72,6 +75,22 @@ namespace akane
 
                 contrib *= attenuation;
                 ray = scattered;
+
+				// russian roulette
+                if (bounce >= kMinBounce)
+                {
+					auto p = std::max({ contrib.X(), contrib.Y(), contrib.Z() });
+
+					if (p > 1)
+					{
+						if (sampler.Get1D() > p)
+						{
+							break;
+						}
+
+						contrib /= p;
+					}
+                }
             }
 
             return result;

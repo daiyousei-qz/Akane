@@ -80,7 +80,7 @@ namespace akane
         Spectrum Eval(const Vec3f& wo, const Vec3f& wi, BxdfType type = BxdfType::Any) const
             noexcept
         {
-            AKANE_ASSERT(type == BxdfType::Any);
+            //AKANE_ASSERT(type == BxdfType::Any);
             return bxdf_->Eval(wo, wi);
 
             /*
@@ -104,13 +104,13 @@ namespace akane
         Spectrum SampleAndEval(const Point2f& u, const Vec3f& wo, Vec3f& wi_out, akFloat& pdf_out,
                                BxdfType type = BxdfType::Any) const noexcept
         {
-            AKANE_ASSERT(type == BxdfType::Any);
+            //AKANE_ASSERT(type == BxdfType::Any);
             return bxdf_->SampleAndEval(u, wo, wi_out, pdf_out);
         }
 
         akFloat Pdf(const Vec3f& wo, const Vec3f& wi, BxdfType type = BxdfType::Any) const noexcept
         {
-            AKANE_ASSERT(type == BxdfType::Any);
+            //AKANE_ASSERT(type == BxdfType::Any);
             return bxdf_->Pdf(wo, wi);
 
             /*
