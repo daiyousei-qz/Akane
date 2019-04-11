@@ -3,7 +3,7 @@
 #include "akane/common/language_utils.h"
 #include "akane/math/float_type.h"
 #include "akane/math/vector.h"
-#include "akane/common/memory_arena.h"
+#include "akane/common/workspace.h"
 
 namespace akane
 {
@@ -18,7 +18,7 @@ namespace akane
 
     struct RenderingContext
     {
-        MemoryArena arena;
+         Workspace workspace;
     };
 
 	struct IntersectionInfo

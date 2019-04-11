@@ -5,6 +5,8 @@ namespace akane
 {
     using akFloat = float;
 
+	constexpr akFloat kFloatEpsilon = 1e-6f;
+
     constexpr akFloat kFloatZero = 0.f;
     constexpr akFloat kFloatOne  = 1.f;
 

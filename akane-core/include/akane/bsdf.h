@@ -3,6 +3,7 @@
 #include "akane/core.h"
 #include "akane/spectrum.h"
 #include <vector>
+#include <any>
 
 namespace akane
 {
@@ -37,6 +38,15 @@ namespace akane
             return (value_ & flag.value_) != 0;
         }
 
+        constexpr bool ContainReflection() const noexcept
+        {
+            return Contain(BxdfType::Reflection);
+        }
+        constexpr bool ContainTransmission() const noexcept
+        {
+            return Contain(BxdfType::Transmission);
+        }
+
     private:
         FlagType value_;
     };
@@ -50,6 +60,8 @@ namespace akane
         {
         }
 
+        ~Bxdf() = default;
+
         BxdfType GetType() const noexcept
         {
             return type_;
@@ -59,9 +71,9 @@ namespace akane
         virtual Spectrum Eval(const Vec3f& wo, const Vec3f& wi) const noexcept = 0;
 
         virtual Spectrum SampleAndEval(const Point2f& u, const Vec3f& wo, Vec3f& wi_out,
-                                       akFloat& pdf_out) const noexcept;
+                                       akFloat& pdf_out) const noexcept = 0;
 
-        virtual akFloat Pdf(const Vec3f& wo, const Vec3f& wi) const noexcept;
+        virtual akFloat Pdf(const Vec3f& wo, const Vec3f& wi) const noexcept = 0;
 
     private:
         BxdfType type_;
@@ -73,63 +85,64 @@ namespace akane
     public:
         static constexpr Vec3f kBsdfNormal = Vec3f{0.f, 0.f, 1.f};
 
-        Bsdf(std::unique_ptr<Bxdf> bxdf)
+        void Add(Bxdf* bxdf)
         {
         }
 
         Spectrum Eval(const Vec3f& wo, const Vec3f& wi, BxdfType type = BxdfType::Any) const
             noexcept
         {
-            //AKANE_ASSERT(type == BxdfType::Any);
-            return bxdf_->Eval(wo, wi);
-
-            /*
             auto reflect = kBsdfNormal.Dot(wi) > 0;
 
             Spectrum f{kFloatZero};
-            for (const auto& bxdf : bxdfs_)
+            for (int i = 0; i < bxdf_cnt_; ++i)
             {
+                auto bxdf      = bxdf_list_[i];
                 auto item_type = bxdf->GetType();
 
-                if (item_type.Contain(type) && item_type.Contain(BxdfType::Reflection) == reflect)
+                if (item_type.Contain(type))
                 {
-                    f += bxdf->Eval(wo, wi);
+                    if ((reflect && item_type.ContainReflection()) ||
+                        (!reflect && item_type.ContainTransmission()))
+                    {
+                        f += bxdf->Eval(wo, wi);
+                    }
                 }
             }
 
             return f;
-            */
         }
 
-        Spectrum SampleAndEval(const Point2f& u, const Vec3f& wo, Vec3f& wi_out, akFloat& pdf_out,
-                               BxdfType type = BxdfType::Any) const noexcept
+        Spectrum SampleAndEval(akFloat u_bxdf, const Point2f& u_wi, const Vec3f& wo, Vec3f& wi_out,
+                               akFloat& pdf_out, BxdfType type = BxdfType::Any) const noexcept
         {
-            //AKANE_ASSERT(type == BxdfType::Any);
-            return bxdf_->SampleAndEval(u, wo, wi_out, pdf_out);
+            // AKANE_ASSERT(type == BxdfType::Any);
         }
 
         akFloat Pdf(const Vec3f& wo, const Vec3f& wi, BxdfType type = BxdfType::Any) const noexcept
         {
-            //AKANE_ASSERT(type == BxdfType::Any);
-            return bxdf_->Pdf(wo, wi);
-
-            /*
             akFloat pdf = kFloatZero;
-            for (const auto& bxdf : bxdfs_)
-            {
-                if (bxdf->GetType().Contain(type))
-                {
-                    pdf += bxdf->Pdf(wo, wi);
-                }
-            }
+			int counter = 0;
+			for (int i = 0; i < bxdf_cnt_; ++i)
+			{
+				auto bxdf = bxdf_list_[i];
+				auto item_type = bxdf->GetType();
 
-            return pdf / static_cast<akFloat>(bxdfs_.size());
-            */
+				if (item_type.Contain(type))
+				{
+					pdf += bxdf->Pdf(wo, wi);
+					counter += 1;
+				}
+			}
+
+            return pdf / static_cast<akFloat>(counter);
         }
 
     private:
-        std::unique_ptr<Bxdf> bxdf_;
-        // std::vector<std::unique_ptr<Bxdf>> bxdfs_;
+        static constexpr int kMaxBxdfCount = 4;
+
+        int bxdf_cnt_ = 0;
+        const Bxdf* bxdf_list_[kMaxBxdfCount];
     };
 
     class BsdfTransform
@@ -137,7 +150,8 @@ namespace akane
     public:
         BsdfTransform(const Vec3f& n)
         {
-            Vec3f yy = n.Cross(n.X() < n.Y() ? Vec3f{1.f, 0, 0} : Vec3f{0, 1.f, 0});
+            Vec3f hh = (n.X() == 0.f) ? Vec3f{1.f, 0, 0} : Vec3f{0, 1.f, 0};
+            Vec3f yy = n.Cross(hh);
             Vec3f xx = yy.Cross(n);
 
             ss_ = xx.Normalized();
