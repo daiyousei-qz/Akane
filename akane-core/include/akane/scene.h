@@ -42,15 +42,6 @@ namespace akane
         {
             return AddMaterialAux(CreateLambertian(texture));
         }
-        Material* AddMetal(const Texture* texture, akFloat fuzz)
-        {
-            return AddMaterialAux(CreateMetal(texture, fuzz));
-        }
-        Material* AddDielectrics(const Texture* texture,
-                                 akFloat refractive_index)
-        {
-            return AddMaterialAux(CreateDielectrics(texture, refractive_index));
-        }
 
         // primitive factory
         //

@@ -11,8 +11,7 @@ namespace akane
 
 	inline bool SameHemisphere(const Vec3f& wo, const Vec3f& wi) noexcept
 	{
-		AKANE_ASSERT(wo.Z() > 0);
-		return wo.Dot(wi) > 0;
+		return wo.Z() * wi.Z() >= 0;
 	}
 
     class BsdfType

@@ -55,10 +55,11 @@ namespace akane
                     if (vtest.Test(scene))
                     {
                         auto shadow_ray = vtest.ShadowRay();
+                        auto wi         = bsdf_coord.WorldToLocal(shadow_ray.d);
 
-                        auto ld = light->Eval(shadow_ray) *
-                                  bsdf->Eval(bsdf_wo, bsdf_coord.WorldToLocal(shadow_ray.d)) /
-                                  vtest.Pdf();
+                        // direct radiance from light source
+                        auto f  = bsdf->Eval(bsdf_wo, wi) * wi.Dot(kBsdfNormal);
+                        auto ld = light->Eval(shadow_ray) * f / vtest.Pdf();
 
                         result += contrib * ld;
                     }

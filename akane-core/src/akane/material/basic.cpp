@@ -54,39 +54,6 @@ namespace akane
 			return workspace.New<LambertianReflection>(texture_->Value(isect));
 		}
 
-        Spectrum ComputeBSDF(const IntersectionInfo& isect, const Vec3f& wo, const Vec3f& wi) const
-            noexcept override
-        {
-            auto albedo = texture_->Value(isect);
-
-            return albedo / kPI * abs(isect.normal.Dot(wi));
-            if (wi.Dot(wo) < 0)
-            {
-                return albedo / kPI * abs(isect.normal.Dot(wi));
-            }
-            else
-            {
-                // lambertain does not transmit any light
-                return Spectrum{kFloatZero};
-            }
-        }
-
-        bool Scatter(const Ray& ray, const IntersectionInfo& isect, const Point2f& sample,
-                     Spectrum& attenuation, Ray& scatter) const noexcept override
-        {
-            auto albedo = texture_->Value(isect);
-
-            auto diffuse = SampleUniformSphere(sample);
-            if (diffuse.Dot(isect.normal) < 0)
-            {
-                diffuse = -diffuse;
-            }
-
-            attenuation = albedo / kPI * diffuse.Dot(isect.normal) / PdfUniformHemisphere();
-            scatter     = Ray{isect.point, diffuse};
-            return true;
-        }
-
     private:
         const Texture* texture_;
     };
