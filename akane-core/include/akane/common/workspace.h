@@ -29,6 +29,7 @@ namespace akane
         ~Workspace()
         {
             Clear();
+            free(buffer_);
         }
 
         Workspace(const Workspace&) = delete;
@@ -57,7 +58,7 @@ namespace akane
             static_assert(alignof(T) <= kWorkspaceItemAlignSize);
 
             auto alloc_size = AlignSize(sizeof(T));
-            auto ptr        = AllocateAux(AlignSize(sz));
+            auto ptr        = AllocateAux(alloc_size);
 
             if (ptr == nullptr)
             {
@@ -66,13 +67,13 @@ namespace akane
 
             if constexpr (std::is_nothrow_constructible_v<T, TArgs...>)
             {
-                return PrepareItem(std::forward<TArgs>(args)...);
+                return PrepareItem<T>(ptr, std::forward<TArgs>(args)...);
             }
             else
             {
                 try
                 {
-                    return PrepareItem(std::forward<TArgs>(args)...);
+                    return PrepareItem<T>(ptr, std::forward<TArgs>(args)...);
                 }
                 catch (...)
                 {
@@ -95,12 +96,12 @@ namespace akane
     private:
         template <typename T, typename... TArgs> T* PrepareItem(void* ptr, TArgs&&... args)
         {
-            new (*ptr) T(std::forward<TArgs>(args)...);
+            new (ptr) T(std::forward<TArgs>(args)...);
 
             if constexpr (!std::is_trivially_destructible_v<T>)
             {
                 destructors_.push_back(
-                    DestructionRecord{ptr, [](void* p) { reinterpret_cast<T*>->~T(); }});
+                    DestructionRecord{ptr, [](void* p) { reinterpret_cast<T*>(p)->~T(); }});
             }
 
             return reinterpret_cast<T*>(ptr);
@@ -113,7 +114,7 @@ namespace akane
                 return nullptr;
             }
 
-            auto result = AdvancePtr(buffer, offset_);
+            auto result = AdvancePtr(buffer_, offset_);
             offset_ += alloc_size;
 
             return result;

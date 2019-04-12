@@ -1,5 +1,6 @@
 #include "akane/integrator.h"
 #include "akane/material.h"
+#include "akane/math/coordinate.h"
 
 using namespace std;
 
@@ -13,6 +14,7 @@ namespace akane
         virtual Spectrum Li(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
                             const Ray& camera_ray) override
         {
+            Workspace workspace{};
             Spectrum result  = kFloatZero;
             Spectrum contrib = kFloatOne;
 
@@ -41,11 +43,9 @@ namespace akane
                     result += contrib * area_light->Eval(ray);
                 }
 
-                // if the primitive is totally transparent
-                if (!isect.material)
-                {
-                    break;
-                }
+                auto bsdf       = isect.material->ComputeBsdf(workspace, isect);
+                auto bsdf_coord = LocalCoordinateTransform{isect.normal};
+                auto bsdf_wo    = bsdf_coord.WorldToLocal(-ray.d);
 
                 // estimate direct lighting
                 for (const auto& light : scene.GetLights())
@@ -57,39 +57,40 @@ namespace akane
                         auto shadow_ray = vtest.ShadowRay();
 
                         auto ld = light->Eval(shadow_ray) *
-                                  isect.material->ComputeBSDF(isect, ray.d, shadow_ray.d) /
+                                  bsdf->Eval(bsdf_wo, bsdf_coord.WorldToLocal(shadow_ray.d)) /
                                   vtest.Pdf();
 
                         result += contrib * ld;
                     }
                 }
 
-                // calculate scattered light, i.e. -wi
-                Spectrum attenuation;
-                Ray scattered;
-                if (!isect.material->Scatter(ray, isect, sampler.Get2D(), attenuation, scattered))
+                // sample bsdf
+                Vec3f wi;
+                akFloat pdf;
+                auto f = bsdf->SampleAndEval(sampler.Get2D(), bsdf_wo, wi, pdf);
+
+                if (pdf == kFloatZero)
                 {
-                    // energy absorbed
                     break;
                 }
 
-                contrib *= attenuation;
-                ray = scattered;
+                contrib *= f * wi.Dot(kBsdfNormal) / pdf;
+                ray = Ray{isect.point, bsdf_coord.LocalToWorld(wi)};
 
-				// russian roulette
+                // russian roulette
                 if (bounce >= kMinBounce)
                 {
-					auto p = std::max({ contrib.X(), contrib.Y(), contrib.Z() });
+                    auto p = std::max({contrib.X(), contrib.Y(), contrib.Z()});
 
-					if (p > 1)
-					{
-						if (sampler.Get1D() > p)
-						{
-							break;
-						}
+                    if (p > 1)
+                    {
+                        if (sampler.Get1D() > p)
+                        {
+                            break;
+                        }
 
-						contrib /= p;
-					}
+                        contrib /= p;
+                    }
                 }
             }
 

@@ -104,7 +104,7 @@ int main()
     auto camera = CreatePinholeCamera({-5, 0, 1}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
     //*/
 
-    auto canvas = ExecuteRendering(scene, *camera, {200, 200}, 100);
+    auto canvas = ExecuteRendering(scene, *camera, {200, 200}, 10);
     canvas.Finalize("d:/test.png", 2.f);
 
     return 0;
