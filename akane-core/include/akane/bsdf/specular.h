@@ -1,34 +1,36 @@
 #pragma once
 #include "akane/bsdf.h"
+#include "akane/bsdf_util.h"
 #include "akane/math/sampling.h"
 
 namespace akane
 {
-    class LambertianReflection : public Bsdf
+    class SpecularReflection : public Bsdf
     {
     public:
-        LambertianReflection(Spectrum albedo) : Bsdf(BsdfType::DiffuseRefl), albedo_(albedo)
+        SpecularReflection(Spectrum albedo) : Bsdf(BsdfType::SpecularRefl), albedo_(albedo)
         {
         }
 
         Spectrum Eval(const Vec3f& wo, const Vec3f& wi) const noexcept override
         {
-            return SameHemisphere(wo, wi) ? albedo_ / kPI : Spectrum{ kFloatZero };
+            return Spectrum{kFloatZero};
         }
 
         Spectrum SampleAndEval(const Point2f& u, const Vec3f& wo, Vec3f& wi_out,
                                akFloat& pdf_out) const noexcept
         {
-            Vec3f wi = SampleCosineWeightedHemisphere(u);
+            Vec3f wi;
+            ComputeReflectedRay(wo, kBsdfNormal, wi);
 
             wi_out  = wi;
-            pdf_out = PdfCosineWeightedHemisphere(wi);
-            return Eval(wo, wi);
+            pdf_out = 1.f;
+            return albedo_;
         }
 
         akFloat Pdf(const Vec3f& wi, const Vec3f& wo) const noexcept
         {
-            return SameHemisphere(wo, wi) ? PdfCosineWeightedHemisphere(wi) : kFloatZero;
+            return kFloatZero;
         }
 
     private:

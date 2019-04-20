@@ -4,5 +4,7 @@ project(Akane CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
+include(cmake/FindEmbree.cmake)
+
 add_subdirectory(./akane-core)
 add_subdirectory(./akane-shell)

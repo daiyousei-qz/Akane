@@ -14,22 +14,22 @@ namespace akane
         virtual Spectrum Li(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
                             const Ray& camera_ray) override
         {
-            Workspace workspace{};
             Spectrum result  = kFloatZero;
-            Spectrum contrib = kFloatOne;
+            Spectrum contrib = {1, 1, 1};
 
             Ray ray = camera_ray;
             for (int bounce = 0; bounce < kMaxBounce; ++bounce)
             {
+                ctx.workspace.Clear();
+
                 IntersectionInfo isect;
-                if (!scene.GetWorld().Intersect(ray, 0.0001f, 10000.f, isect))
+                if (!scene.Intersect(ray, ctx.workspace, isect))
                 {
-                    // blend infinite light
-                    auto infinite_light = scene.GetInfiniteLight();
-                    if (infinite_light)
-                    {
-                        result += contrib * infinite_light->Eval(ray);
-                    }
+					// blend global light
+					for (auto global_light : scene.GetGlobalLights())
+					{
+						result += contrib * global_light->Eval(ray);
+					}
 
                     break;
                 }
@@ -37,31 +37,40 @@ namespace akane
                 // if the primitive emits light
                 // NOTE as light source is also explicit sampled, only camera ray needs accumulation
                 // TODO: specular reflection
-                auto area_light = isect.primitive->GetAreaLight();
-                if (area_light && bounce == 0)
+                if (isect.area_light && bounce == 0)
                 {
-                    result += contrib * area_light->Eval(ray);
+                    result += contrib * isect.area_light->Eval(ray);
                 }
 
-                auto bsdf       = isect.material->ComputeBsdf(workspace, isect);
-                auto bsdf_coord = LocalCoordinateTransform{isect.normal};
+                if (isect.material == nullptr)
+                {
+                    break;
+                }
+
+                auto bsdf       = isect.material->ComputeBsdf(ctx.workspace, isect);
+                auto bsdf_coord = LocalCoordinateTransform(isect.ns);
                 auto bsdf_wo    = bsdf_coord.WorldToLocal(-ray.d);
 
                 // estimate direct lighting
                 for (const auto& light : scene.GetLights())
                 {
+                    if (light == isect.area_light)
+                    {
+                        continue;
+                    }
+
                     auto vtest = light->SampleLi(sampler.Get2D(), isect);
 
-                    if (vtest.Test(scene))
+                    if (vtest.Test(scene, ctx.workspace))
                     {
                         auto shadow_ray = vtest.ShadowRay();
                         auto wi         = bsdf_coord.WorldToLocal(shadow_ray.d);
 
                         // direct radiance from light source
                         auto f  = bsdf->Eval(bsdf_wo, wi) * wi.Dot(kBsdfNormal);
-                        auto ld = light->Eval(shadow_ray) * f / vtest.Pdf();
+                        auto ld = light->Eval(shadow_ray);
 
-                        result += contrib * ld;
+                        result += contrib * ld * f / vtest.Pdf();
                     }
                 }
 

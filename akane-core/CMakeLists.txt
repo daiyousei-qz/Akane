@@ -7,3 +7,6 @@ target_sources(akane-core PRIVATE ${AKANE_CORE_SOURCES})
 target_include_directories(akane-core 
 	PUBLIC ./include
 	PRIVATE ./src)
+
+target_link_libraries(akane-core
+	PUBLIC external::embree)

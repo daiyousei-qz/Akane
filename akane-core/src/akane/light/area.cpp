@@ -3,12 +3,9 @@
 
 namespace akane
 {
-    AreaLight::AreaLight(GeometricPrimitive* primitive, Spectrum albedo)
+    AreaLight::AreaLight(Primitive* primitive, Spectrum albedo)
         : primitive_(primitive), albedo_(albedo)
     {
-        AKANE_REQUIRE(primitive != nullptr && primitive->GetAreaLight() == nullptr);
-
-        primitive->RegisterLightSource(this);
     }
 
     Spectrum AreaLight::Eval(const Ray& ray) const

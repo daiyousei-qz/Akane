@@ -7,7 +7,7 @@
 
 namespace akane
 {
-    class NaiveComposite : public Primitive
+    class NaiveComposite : public Composite
     {
     public:
 		void AddPrimitive(Primitive* body)

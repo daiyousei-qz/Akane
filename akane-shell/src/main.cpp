@@ -1,4 +1,6 @@
 #include "akane/render.h"
+#include "akane/scene/akane_scene.h"
+#include "akane/scene/embree_scene.h"
 #include <random>
 #include <vector>
 
@@ -15,52 +17,72 @@ auto RandSpectrum()
     return Spectrum{RandCanonical(), RandCanonical(), RandCanonical()};
 }
 
-auto ColoredSolidLambertian(Scene& scene, Spectrum color)
+auto RandSolidLambertian(SceneBase& scene)
 {
+	auto texture = scene.CreateTexture_Solid({ RandSpectrum() });
+    return scene.CreateMaterial_Lambertian(texture);
 }
 
-auto RandSolidLambertian(Scene& scene)
+auto RandCheckboardLambertian(SceneBase& scene)
 {
-    auto texture = scene.AddSolidTexture(RandSpectrum());
-    return scene.AddLambertian(texture);
+	auto t0 = scene.CreateTexture_Solid({ RandSpectrum() });
+	auto t1 = scene.CreateTexture_Solid({ RandSpectrum() });
+    auto texture = scene.CreateTexture_Checkerboard(t0, t1);
+
+    return scene.CreateMaterial_Lambertian(texture);
 }
 
-auto RandCheckboardLambertian(Scene& scene)
+auto QuickAddSphere(AkaneScene& scene, Spectrum color, Vec3f center, akFloat radius)
 {
-    auto t0      = scene.AddSolidTexture(RandSpectrum());
-    auto t1      = scene.AddSolidTexture(RandSpectrum());
-    auto texture = scene.AddCheckerboardTexture(t0, t1);
-
-    return scene.AddLambertian(texture);
-}
-
-auto QuickAddSphere(Scene& scene, Spectrum color, Vec3f center, akFloat radius)
-{
-    auto texture  = scene.AddSolidTexture(color);
-    auto material = scene.AddLambertian(texture);
+	auto texture = scene.CreateTexture_Solid({ color });
+    auto material = scene.CreateMaterial_Lambertian(texture);
 
     return scene.AddSphere(material, center, radius);
 }
 
-//*
-Scene CreateCornellBox()
+std::vector<MeshDesc::SharedPtr> CreateScene1();
+
+#pragma optimize("", off)
+void foo()
 {
-    Scene scene;
+    EmbreeScene scene;
+
+	for(const auto& mesh_data : CreateScene1())
+	{
+		scene.AddMesh(mesh_data);
+	}
+
+	scene.CreateGlobalLight_Infinite({ 0.05, 0.05, 0.2 });
+	scene.Commit();
+	
+	auto camera = CreatePinholeCamera({-6, -6, 2}, {1, 1, 0}, {0, 0, 1}, {.6f, .6f});
+    
+	auto canvas = ExecuteRendering(scene, *camera, {200, 200}, 20);
+    canvas.Finalize("d:/test2.png", 2.f);
+    return;
+}
+
+#pragma optimize("", on)
+
+//*
+AkaneScene::Ptr CreateCornellBox()
+{
+    auto scene = std::make_unique<AkaneScene>();
 
     // box
-    QuickAddSphere(scene, {.9, .9, .9}, {0, 0, -1e5}, 1e5);    // bottom
-    QuickAddSphere(scene, {.9, .9, .9}, {0, 0, 8 + 1e5}, 1e5); // top
-    QuickAddSphere(scene, {.9, 0, 0}, {0, 5 + 1e5, 4}, 1e5);   // left
-    QuickAddSphere(scene, {0, .9, 0}, {0, -5 - 1e5, 4}, 1e5);  // right
-    QuickAddSphere(scene, {.9, .9, .9}, {5 + 1e5, 0, 4}, 1e5); // front
+    QuickAddSphere(*scene, {.9, .9, .9}, {0, 0, -1e5}, 1e5);    // bottom
+    QuickAddSphere(*scene, {.9, .9, .9}, {0, 0, 8 + 1e5}, 1e5); // top
+    QuickAddSphere(*scene, {.9, 0, 0}, {0, 5 + 1e5, 4}, 1e5);   // left
+    QuickAddSphere(*scene, {0, .9, 0}, {0, -5 - 1e5, 4}, 1e5);  // right
+    QuickAddSphere(*scene, {.9, .9, .9}, {5 + 1e5, 0, 4}, 1e5); // front
 
     // spheres
-    QuickAddSphere(scene, RandSpectrum(), {-2, -2, 1}, 1);
-    QuickAddSphere(scene, RandSpectrum(), {2, 1, 2.5}, 2.5);
+    QuickAddSphere(*scene, RandSpectrum(), {-2, -2, 1}, 1);
+    QuickAddSphere(*scene, RandSpectrum(), {2, 1, 2.5}, 2.5);
 
     // light
-    auto bulb = QuickAddSphere(scene, {1, 1, 1}, {0, 0, 6}, 0.3f);
-    scene.AddAreaLight(bulb, {1, 1, 1});
+    auto bulb = QuickAddSphere(*scene, {1, 1, 1}, {0, 0, 6}, 0.3f);
+    scene->CreateLight_Area(bulb, {1, 1, 1});
 
     return scene;
 }
@@ -73,12 +95,15 @@ Camera::Ptr CreateCornellBoxCamera()
 
 int main()
 {
-    srand(1024);
-    Scene scene = CreateCornellBox();
+	srand(10240);
+	foo();
+    return 0;
+
+    auto scene  = CreateCornellBox();
     auto camera = CreateCornellBoxCamera();
 
     /*
-    Scene scene;
+    BasicScene scene;
     auto txt0 = scene.AddSolidTexture(RandSpectrum());
     auto txt1 = scene.AddSolidTexture(RandSpectrum());
     auto txt2 = scene.AddSolidTexture(RandSpectrum());
@@ -104,7 +129,7 @@ int main()
     auto camera = CreatePinholeCamera({-5, 0, 1}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
     //*/
 
-    auto canvas = ExecuteRendering(scene, *camera, {200, 200}, 10);
+    auto canvas = ExecuteRendering(*scene, *camera, {200, 200}, 3);
     canvas.Finalize("d:/test.png", 2.f);
 
     return 0;

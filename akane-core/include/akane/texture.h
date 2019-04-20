@@ -10,30 +10,29 @@ namespace akane
     public:
         using Ptr = std::unique_ptr<Texture>;
 
-        virtual Spectrum Value(const IntersectionInfo& isect) const
-            noexcept = 0;
+        virtual Spectrum Value(const IntersectionInfo& isect) const noexcept = 0;
     };
 
     class SolidTexture : public Texture
     {
     public:
-        SolidTexture(Spectrum albedo) : albedo_(albedo)
+        SolidTexture(std::vector<Spectrum> albedo) : albedo_(std::move(albedo))
         {
         }
 
         Spectrum Value(const IntersectionInfo& isect) const noexcept override
         {
-            return albedo_;
+            return albedo_[isect.index];
         }
 
     private:
-        Spectrum albedo_;
+        std::vector<Spectrum> albedo_;
     };
+
     class CheckerboardTexture : public Texture
     {
     public:
-		CheckerboardTexture(const Texture* t0, const Texture* t1)
-            : t0_(t0), t1_(t1)
+        CheckerboardTexture(const Texture* t0, const Texture* t1) : t0_(t0), t1_(t1)
         {
         }
 

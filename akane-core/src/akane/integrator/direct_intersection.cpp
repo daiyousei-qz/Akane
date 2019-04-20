@@ -6,15 +6,14 @@ namespace akane
 {
     class DirectIntersectionIntegrator : public Integrator
     {
-        virtual Spectrum Li(RenderingContext& ctx, Sampler& sampler,
-                            const Scene& scene, const Ray& ray) override
+        virtual Spectrum Li(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
+                            const Ray& ray) override
         {
             IntersectionInfo info;
-            if (scene.GetWorld().Intersect(ray, 0.00001f, 10000.f, info))
+            if (scene.Intersect(ray, ctx.workspace, info))
             {
-                auto a          = std::acos(ray.d.Dot(info.normal));
-                auto gray_scale = (a / kPI - 0.5f) * 2.f;
-                return Spectrum(gray_scale);
+                auto nmap = (info.ns.Normalized() + Vec3f{1.f, 1.f, 1.f}) / 2.f;
+                return Spectrum{nmap.X(), nmap.Y(), nmap.Z()};
             }
             else
             {

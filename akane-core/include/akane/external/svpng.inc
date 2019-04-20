@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \sa         http://github.com/miloyip/svpng
 */
 
+#pragma once
 #ifndef SVPNG_INC_
 #define SVPNG_INC_
 
@@ -45,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     and/or inline in C99/C++, etc.
 */
 #ifndef SVPNG_LINKAGE
-#define SVPNG_LINKAGE
+#define SVPNG_LINKAGE inline
 #endif
 
 /*! \def SVPNG_OUTPUT

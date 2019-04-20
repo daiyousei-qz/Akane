@@ -3,17 +3,18 @@
 
 namespace akane
 {
-	bool VisibilityTester::Test(const Scene& scene) const
-	{
-		IntersectionInfo isect;
-		if (scene.GetWorld().Intersect(TestRay(), 0.001f, 10000.f, isect))
-		{
-			if (isect.primitive == object_ && (isect.point - point_object_).LengthSq() < 0.001f)
-			{
-				return true;
-			}
-		}
+    bool VisibilityTester::Test(const Scene& scene, Workspace& workspace) const
+    {
+        IntersectionInfo isect;
+        if (scene.Intersect(TestRay(), workspace, isect))
+        {
+            if (SamePrimitive(object_, isect.primitive) &&
+                (isect.point - object_point_).LengthSq() < 0.001f)
+            {
+                return true;
+            }
+        }
 
-		return false;
-	}
-}
+        return false;
+    }
+} // namespace akane

@@ -1,16 +1,16 @@
 #pragma once
-
+#include "akane/primitive/self_contained.h"
 #include "akane/core.h"
-#include "akane/primitive.h"
 #include "akane/material.h"
+#include "akane/math/sampling.h"
 
 namespace akane
 {
-    class Sphere : public GeometricPrimitive
+    class Sphere : public SelfContainedPrimitive
     {
     public:
         Sphere(const Material* material, Point3f center, akFloat radius)
-            : GeometricPrimitive(material), center_(center), radius_(radius)
+            : SelfContainedPrimitive(material), center_(center), radius_(radius)
         {
         }
 
@@ -44,23 +44,24 @@ namespace akane
                 return false;
             }
 
-            isect.t            = t;
-            isect.point        = ray_o + t * ray_d;
-            isect.uv           = {0, 0};
-            isect.normal       = (isect.point - center_).Normalized();
-            isect.internal_ray = center_.Distance(ray.o) < radius_;
-            isect.primitive    = this;
-            isect.material     = GetMaterial();
+            isect.t          = t;
+            isect.point      = ray_o + t * ray_d;
+            isect.ng         = (isect.point - center_).Normalized();
+            isect.ns         = isect.ng.Dot(ray.d) > 0 ? isect.ng : -isect.ng;
+            isect.uv         = {0, 0};
+            isect.index      = 0;
+            isect.primitive  = this;
+            isect.area_light = GetAreaLight();
+            isect.material   = GetMaterial();
             return true;
         }
 
         akFloat Area() const override
         {
-            return 4.f* kPI* radius_* radius_;
+            return 4.f * kPI * radius_ * radius_;
         }
 
-        void SampleP(const Point2f& u, Point3f& point_out,
-                     akFloat& pdf_out) const override
+        void SampleP(const Point2f& u, Point3f& point_out, akFloat& pdf_out) const override
         {
             point_out = SampleUniformSphere(u) * radius_ + center_;
             pdf_out   = 1 / Area();
@@ -71,9 +72,8 @@ namespace akane
         akFloat radius_;
     };
 
-    inline GeometricPrimitive::Ptr
-    CreateSpherePrimitive(const Material* material, Vec3f center,
-                          akFloat radius)
+    inline Primitive::Ptr CreateSpherePrimitive(const Material* material, Vec3f center,
+                                                akFloat radius)
     {
         return std::make_unique<Sphere>(material, center, radius);
     }

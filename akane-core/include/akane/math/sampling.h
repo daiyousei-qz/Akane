@@ -38,7 +38,7 @@ namespace akane
     }
 
     //
-    inline Vec3f SamplueCosineWeightedHemisphere(Point2f u) noexcept
+    inline Vec3f SampleCosineWeightedHemisphere(Point2f u) noexcept
     {
         auto theta = u[0] * 2 * kPI;
         auto r     = sqrt(u[1]);

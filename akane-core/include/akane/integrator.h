@@ -1,4 +1,5 @@
 #pragma once
+#include "akane/common/object.h"
 #include "akane/spectrum.h"
 #include "akane/core.h"
 #include "akane/scene.h"

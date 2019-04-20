@@ -9,6 +9,7 @@ namespace akane
 {
 	class Primitive;
 	class Material;
+	class AreaLight;
 
     struct Ray
     {
@@ -23,23 +24,31 @@ namespace akane
 
 	struct IntersectionInfo
 	{
-		// distance that ray has travalled
-        akFloat t;
+		// distance that ray travels to make the hit
+		akFloat t;
 
 		// point where intersection happens
 		Point3f point;
 
+		// hit point normal
+		Vec3f ng;
+
+		// hit point normal
+        Vec3f ns;
+
 		// uv coordianate at point for texture mapping
 		Point2f uv;
 
-        Vec3f normal;
-
-		// if ray comes from 
-		bool internal_ray;
+		// triangle index for embree scene
+		unsigned index;
 
 		// primitive that ray hits
 		const Primitive* primitive;
 
+		// area light at the hit point
+		const AreaLight* area_light;
+
+		// material at the hit point
 		const Material* material;
 	};
 } // namespace akane

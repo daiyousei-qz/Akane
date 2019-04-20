@@ -6,16 +6,14 @@ namespace akane
     class InfiniteLight : public Light
     {
     public:
-        InfiniteLight(const Vec3f& direction, const Spectrum& albedo)
-            : direction_(direction), albedo_(albedo)
+        InfiniteLight(const Spectrum& albedo)
+            : albedo_(albedo)
         {
         }
 
         Spectrum Eval(const Ray& ray) const override
         {
-            auto contrib = -direction_.Dot(ray.d);
-
-            return contrib > 0 ? albedo_ * contrib : Spectrum{kFloatZero};
+            return albedo_;
         }
 
         VisibilityTester SampleLi(const Point2f& u, const IntersectionInfo& isect) const override
@@ -29,12 +27,6 @@ namespace akane
         }
 
     private:
-        Vec3f direction_;
         Spectrum albedo_;
     };
-
-    inline Light::Ptr CreateInfiniteLight(const Vec3f& direction, const Spectrum& albedo)
-    {
-        return std::make_unique<InfiniteLight>(direction, albedo);
-    }
 } // namespace akane

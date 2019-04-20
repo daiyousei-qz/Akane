@@ -53,7 +53,7 @@ namespace akane
             return AllocateAux(AlignSize(sz));
         }
 
-        template <typename T, typename... TArgs> T* New(TArgs&&... args)
+        template <typename T, typename... TArgs> T* Construct(TArgs&&... args)
         {
             static_assert(alignof(T) <= kWorkspaceItemAlignSize);
 
@@ -67,13 +67,13 @@ namespace akane
 
             if constexpr (std::is_nothrow_constructible_v<T, TArgs...>)
             {
-                return PrepareItem<T>(ptr, std::forward<TArgs>(args)...);
+                return DoConstruct<T>(ptr, std::forward<TArgs>(args)...);
             }
             else
             {
                 try
                 {
-                    return PrepareItem<T>(ptr, std::forward<TArgs>(args)...);
+                    return DoConstruct<T>(ptr, std::forward<TArgs>(args)...);
                 }
                 catch (...)
                 {
@@ -91,17 +91,18 @@ namespace akane
             }
 
             offset_ = 0;
+            destructors_.clear();
         }
 
     private:
-        template <typename T, typename... TArgs> T* PrepareItem(void* ptr, TArgs&&... args)
+        template <typename T, typename... TArgs> T* DoConstruct(void* ptr, TArgs&&... args)
         {
             new (ptr) T(std::forward<TArgs>(args)...);
 
             if constexpr (!std::is_trivially_destructible_v<T>)
             {
                 destructors_.push_back(
-                    DestructionRecord{ptr, [](void* p) { reinterpret_cast<T*>(p)->~T(); }});
+                    DestructionHandle{ptr, [](void* p) { reinterpret_cast<T*>(p)->~T(); }});
             }
 
             return reinterpret_cast<T*>(ptr);
@@ -126,7 +127,7 @@ namespace akane
             return sz + align_extra;
         }
 
-        struct DestructionRecord
+        struct DestructionHandle
         {
             void* object;
             void (*disposer)(void*);
@@ -136,6 +137,6 @@ namespace akane
         size_t size_;
         size_t offset_;
 
-        std::vector<DestructionRecord> destructors_;
+        std::vector<DestructionHandle> destructors_;
     };
 } // namespace akane
