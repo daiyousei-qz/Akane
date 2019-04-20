@@ -17,9 +17,9 @@ namespace
     }
 } // namespace
 
-std::vector<MeshDesc::SharedPtr> CreateScene1()
+SceneDesc::SharedPtr CreateScene0()
 {
-    std::vector<MeshDesc::SharedPtr> scene_desc;
+    auto scene = std::make_shared<SceneDesc>();
 
     // mesh 0: box
     //
@@ -38,14 +38,13 @@ std::vector<MeshDesc::SharedPtr> CreateScene1()
         }
 
         mesh->material         = std::make_shared<MaterialDesc>();
-        mesh->material->name   = "mat0";
         mesh->material->type   = "lambertian";
         mesh->material->params = {{"albedo", texture}};
 
         // light
         mesh->area_light = nullptr;
 
-        scene_desc.push_back(mesh);
+        scene->objects.push_back(mesh);
     }
 
     // mesh 1: ground
@@ -57,21 +56,20 @@ std::vector<MeshDesc::SharedPtr> CreateScene1()
 
         // material
         mesh->material         = std::make_shared<MaterialDesc>();
-        mesh->material->name   = "mat1";
         mesh->material->type   = "lambertian";
         mesh->material->params = {{"albedo", RandSpectrum()}};
 
         // light
         mesh->area_light = nullptr;
 
-        scene_desc.push_back(mesh);
+        scene->objects.push_back(mesh);
     }
 
     // mesh 2: lightA
     //
     {
         auto mesh       = std::make_shared<MeshDesc>();
-        mesh->vertices  = {{-1, -1, 10}, {-1, 1, 10}, {1, 1, 10}};
+        mesh->vertices  = {{-10, -5, 10}, {-10, -3, 10}, {-8, -3, 10}};
         mesh->triangles = {{0, 1, 2}};
 
         // material
@@ -79,11 +77,33 @@ std::vector<MeshDesc::SharedPtr> CreateScene1()
 
         // light
         mesh->area_light         = std::make_shared<AreaLightDesc>();
-        mesh->area_light->name   = "light0";
         mesh->area_light->albedo = {1, 1, 1};
 
-        scene_desc.push_back(mesh);
+        scene->objects.push_back(mesh);
     }
 
-    return scene_desc;
+    // global light 0
+    //
+    {
+        auto light    = std::make_shared<GlobalLightDesc>();
+        light->type   = "infinite";
+        light->params = {{"albedo", Vec3f{0.05, 0.05, 0.2}}};
+
+		scene->global_lights.push_back(light);
+    }
+
+    // camera
+    //
+    {
+        auto camera     = std::make_shared<CameraDesc>();
+        camera->origin  = {-6, -6, 2};
+        camera->forward = {1, 1, 0};
+        camera->upward  = {0, 0, 1};
+        camera->fov     = {.6f, .6f};
+
+        scene->camera = camera;
+    }
+
+	return scene;
 }
+

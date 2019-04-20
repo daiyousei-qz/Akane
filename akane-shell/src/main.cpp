@@ -19,14 +19,14 @@ auto RandSpectrum()
 
 auto RandSolidLambertian(SceneBase& scene)
 {
-	auto texture = scene.CreateTexture_Solid({ RandSpectrum() });
+    auto texture = scene.CreateTexture_Solid({RandSpectrum()});
     return scene.CreateMaterial_Lambertian(texture);
 }
 
 auto RandCheckboardLambertian(SceneBase& scene)
 {
-	auto t0 = scene.CreateTexture_Solid({ RandSpectrum() });
-	auto t1 = scene.CreateTexture_Solid({ RandSpectrum() });
+    auto t0      = scene.CreateTexture_Solid({RandSpectrum()});
+    auto t1      = scene.CreateTexture_Solid({RandSpectrum()});
     auto texture = scene.CreateTexture_Checkerboard(t0, t1);
 
     return scene.CreateMaterial_Lambertian(texture);
@@ -34,30 +34,48 @@ auto RandCheckboardLambertian(SceneBase& scene)
 
 auto QuickAddSphere(AkaneScene& scene, Spectrum color, Vec3f center, akFloat radius)
 {
-	auto texture = scene.CreateTexture_Solid({ color });
+    auto texture  = scene.CreateTexture_Solid({color});
     auto material = scene.CreateMaterial_Lambertian(texture);
 
     return scene.AddSphere(material, center, radius);
 }
 
-std::vector<MeshDesc::SharedPtr> CreateScene1();
+SceneDesc::SharedPtr CreateScene0();
 
 #pragma optimize("", off)
 void foo()
 {
     EmbreeScene scene;
 
-	for(const auto& mesh_data : CreateScene1())
-	{
-		scene.AddMesh(mesh_data);
-	}
+    auto scene_desc = CreateScene0();
 
-	scene.CreateGlobalLight_Infinite({ 0.05, 0.05, 0.2 });
-	scene.Commit();
-	
-	auto camera = CreatePinholeCamera({-6, -6, 2}, {1, 1, 0}, {0, 0, 1}, {.6f, .6f});
+    for (const auto& mesh_data : scene_desc->objects)
+    {
+        scene.AddMesh(mesh_data);
+    }
+
+    for (const auto& global_light : scene_desc->global_lights)
+    {
+        if (global_light->type == "infinite")
+        {
+            const auto& albedo = global_light->params.at("albedo");
+
+            scene.CreateGlobalLight_Infinite(any_cast<Vec3f>(albedo));
+        }
+        else if (global_light->type == "distant")
+        {
+            const auto& direction = global_light->params.at("direction");
+            const auto& albedo    = global_light->params.at("albedo");
+
+            scene.CreateGlobalLight_Distant(any_cast<Vec3f>(direction), any_cast<Vec3f>(albedo));
+        }
+    }
+
+    auto camera = CreatePinholeCamera(scene_desc->camera->origin, scene_desc->camera->forward,
+                                      scene_desc->camera->upward, scene_desc->camera->fov);
     
-	auto canvas = ExecuteRendering(scene, *camera, {200, 200}, 20);
+	scene.Commit();
+    auto canvas = ExecuteRendering(scene, *camera, {200, 200}, 20);
     canvas.Finalize("d:/test2.png", 2.f);
     return;
 }
@@ -95,8 +113,8 @@ Camera::Ptr CreateCornellBoxCamera()
 
 int main()
 {
-	srand(10240);
-	foo();
+    srand(10240);
+    foo();
     return 0;
 
     auto scene  = CreateCornellBox();
