@@ -30,10 +30,10 @@ namespace akane
 		// point where intersection happens
 		Point3f point;
 
-		// hit point normal
+		// geometric normal at the hit point
 		Vec3f ng;
 
-		// hit point normal
+		// scattering normal at the hit point
         Vec3f ns;
 
 		// uv coordianate at point for texture mapping

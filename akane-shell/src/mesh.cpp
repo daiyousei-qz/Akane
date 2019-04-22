@@ -17,6 +17,7 @@ namespace
     }
 } // namespace
 
+/*
 SceneDesc::SharedPtr CreateScene0()
 {
     auto scene = std::make_shared<SceneDesc>();
@@ -57,7 +58,7 @@ SceneDesc::SharedPtr CreateScene0()
         // material
         mesh->material         = std::make_shared<MaterialDesc>();
         mesh->material->type   = "lambertian";
-        mesh->material->params = {{"albedo", RandSpectrum()}};
+        mesh->material->params = {{"albedo", Vec3f{.6, .6, .6}}};
 
         // light
         mesh->area_light = nullptr;
@@ -79,7 +80,7 @@ SceneDesc::SharedPtr CreateScene0()
         mesh->area_light         = std::make_shared<AreaLightDesc>();
         mesh->area_light->albedo = {1, 1, 1};
 
-        scene->objects.push_back(mesh);
+        // scene->objects.push_back(mesh);
     }
 
     // global light 0
@@ -87,9 +88,9 @@ SceneDesc::SharedPtr CreateScene0()
     {
         auto light    = std::make_shared<GlobalLightDesc>();
         light->type   = "infinite";
-        light->params = {{"albedo", Vec3f{0.05, 0.05, 0.2}}};
+        light->params = {{"albedo", Vec3f{.6, .6, 1}}};
 
-		scene->global_lights.push_back(light);
+        scene->global_lights.push_back(light);
     }
 
     // camera
@@ -104,6 +105,6 @@ SceneDesc::SharedPtr CreateScene0()
         scene->camera = camera;
     }
 
-	return scene;
+    return scene;
 }
-
+//*/

@@ -3,21 +3,78 @@
 #include "akane/mesh.h"
 #include "akane/light.h"
 #include "akane/common/arena.h"
+#include "akane/math/transform.h"
 #include "akane/scene/scene_base.h"
 #include "akane/primitive/embree_triangle.h"
 #include "rtcore.h"
 
 namespace akane
 {
+    struct EmbreeMeshBuffer
+    {
+        size_t vertex_count;
+        std::unique_ptr<float[]> vertex_data; // layouts: [x, y, z]...
+
+        size_t normal_count;
+        std::unique_ptr<float[]> normal_data; // layouts: [x, y, z]...
+
+        size_t uv_count;
+        std::unique_ptr<float[]> uv_data; // layouts: [u, v]...
+
+        static constexpr size_t kVertexIndexStride = 3;
+        static constexpr size_t kNormalIndexStride = 3;
+        static constexpr size_t kUVIndexStride     = 2;
+
+        Point3f GetVertex(size_t index) const noexcept
+        {
+            AKANE_ASSERT(index < vertex_count);
+
+            auto p = vertex_data.get() + index * kVertexIndexStride;
+            return Point3f{p[0], p[1], p[2]};
+        }
+
+        Point3f GetNormal(size_t index) const noexcept
+        {
+            AKANE_ASSERT(index < normal_count);
+
+            auto p = normal_data.get() + index * kNormalIndexStride;
+            return Point3f{p[0], p[1], p[2]};
+        }
+
+        Point2f GetUv(size_t index) const noexcept
+        {
+            AKANE_ASSERT(index < uv_count);
+
+            auto p = uv_data.get() + index * kUVIndexStride;
+            return Point2f{p[0], p[1]};
+        }
+    };
+
     struct EmbreeMeshGeometry
     {
-        using Ptr = std::unique_ptr<EmbreeMeshGeometry>;
-
         unsigned geom_id;
-        MeshDesc::SharedPtr mesh_data;
+        const EmbreeMeshBuffer* mesh_buffer;
 
-		AreaLight* area_light;
-		Material* material;
+        size_t triangle_count;
+        std::unique_ptr<uint32_t[]> triangle_indices; // layouts: [x, y, z]...
+        std::unique_ptr<uint32_t[]> normal_indices;   // layouts: [x, y, z]...
+        std::unique_ptr<uint32_t[]> uv_indices;       // layouts: [u, v]...
+
+        const AreaLight* area_light;
+        const Material* material;
+
+        static constexpr size_t kTriangleIndexStride = 3;
+        static constexpr size_t kNormalIndexStride   = 3;
+        static constexpr size_t kUVIndexStride       = 2;
+
+        std::tuple<Point3f, Point3f, Point3f> GetTriangle(size_t index) const noexcept
+        {
+            AKANE_ASSERT(index < triangle_count);
+
+            auto p = triangle_indices.get() + index * kTriangleIndexStride;
+            return {mesh_buffer->GetVertex(p[0]), mesh_buffer->GetVertex(p[1]),
+                    mesh_buffer->GetVertex(p[2])};
+        }
     };
 
     class EmbreeScene : public SceneBase
@@ -31,9 +88,16 @@ namespace akane
         bool Intersect(const Ray& ray, Workspace& workspace,
                        IntersectionInfo& isect) const override;
 
-        unsigned AddMesh(MeshDesc::SharedPtr mesh_data);
+        void AddMesh(MeshDesc::SharedPtr mesh_data, const Transform& transform = Transform::Identity());
 
-        Primitive* InstantiatePrimitive(unsigned geom_id, unsigned prim_id)
+		// for testing
+		void AddGround(akFloat z, const Spectrum& albedo);
+		void AddTriangleLight(const Point3f& v0, const Point3f& v1, const Point3f& v2, const Spectrum& albedo);
+
+	private:
+		unsigned RegisterMeshGeometry(EmbreeMeshGeometry* geometry);
+
+		Primitive* InstantiatePrimitive(unsigned geom_id, unsigned prim_id)
         {
             auto p = Construct<EmbreeTriangle>();
             CreatePrimitiveAux(*p, geom_id, prim_id);
@@ -41,9 +105,8 @@ namespace akane
             return p;
         }
 
-    private:
         Primitive* InstantiateTemporaryPrimitive(Workspace& workspace, unsigned geom_id,
-                                                       unsigned prim_id) const
+                                                 unsigned prim_id) const
         {
             auto p = workspace.Construct<EmbreeTriangle>();
             CreatePrimitiveAux(*p, geom_id, prim_id);
@@ -53,22 +116,20 @@ namespace akane
 
         void CreatePrimitiveAux(EmbreeTriangle& p, unsigned geom_id, unsigned prim_id) const
         {
-			p.geom_id_ = geom_id;
-			p.prim_id_ = prim_id;
+            p.geom_id_ = geom_id;
+            p.prim_id_ = prim_id;
 
-			auto geometry = geoms_.at(geom_id);
-			auto tri_indices = geometry->mesh_data->triangles.at(prim_id);
+			auto [v0, v1, v2] = geoms_.at(geom_id)->GetTriangle(prim_id);
+            p.v0_ = v0;
+            p.v1_ = v1;
+            p.v2_ = v2;
 
-			p.v0_ = geometry->mesh_data->vertices[tri_indices.X()];
-			p.v1_ = geometry->mesh_data->vertices[tri_indices.Y()];
-			p.v2_ = geometry->mesh_data->vertices[tri_indices.Z()];
-
-			auto e1 = p.v1_ - p.v0_;
-			auto e2 = p.v2_ - p.v0_;
-			p.area_ = e1.Cross(e2).Length() / 2;
+            auto e1 = p.v1_ - p.v0_;
+            auto e2 = p.v2_ - p.v0_;
+            p.area_ = e1.Cross(e2).Length() / 2;
         }
 
         RTCScene scene_;
-        std::vector<EmbreeMeshGeometry*> geoms_;
+        std::vector<const EmbreeMeshGeometry*> geoms_;
     };
 } // namespace akane

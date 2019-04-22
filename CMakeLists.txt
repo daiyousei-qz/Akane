@@ -4,7 +4,9 @@ project(Akane CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
+include(ExternalProject)
 include(cmake/FindEmbree.cmake)
+include(cmake/FindTinyObjLoader.cmake)
 
 add_subdirectory(./akane-core)
 add_subdirectory(./akane-shell)

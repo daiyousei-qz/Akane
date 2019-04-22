@@ -1,6 +1,7 @@
 #include "akane/render.h"
 #include "akane/scene/akane_scene.h"
 #include "akane/scene/embree_scene.h"
+#include "akane/math/transform.h"
 #include <random>
 #include <vector>
 
@@ -40,12 +41,39 @@ auto QuickAddSphere(AkaneScene& scene, Spectrum color, Vec3f center, akFloat rad
     return scene.AddSphere(material, center, radius);
 }
 
-SceneDesc::SharedPtr CreateScene0();
-
 #pragma optimize("", off)
 void foo()
 {
+
     EmbreeScene scene;
+
+    // cornell box
+    {
+        auto mesh = LoadMesh("d:/scene/cb/CornellBox-Original.obj");
+        auto room_transform =
+            Transform::RotateY(kPI / 2).Also(Transform::RotateX(kPI / 2 * 3)).MoveTo({0, 0, -1});
+        scene.AddMesh(mesh, room_transform);
+    }
+
+    // stanford bunny
+    {
+        auto mesh            = LoadMesh("d:/scene/bunny/bunny.obj");
+        auto bunny_transform = Transform::RotateX(kPI / 2 * 3).Also(Transform::Scale(.5)).MoveTo({0, -.5, -1});
+        scene.AddMesh(mesh, bunny_transform);
+    }
+    // scene.AddGround(-1, {.7, .7, .7});
+    // scene.AddTriangleLight({1, 1, 10}, {-1, 1, 10}, {1, -1, 10}, {1, 1, 1});
+    // scene.CreateGlobalLight_Distant({ 0, 0, -1 }, { .2, .2, .6 });
+    // scene.CreateGlobalLight_Infinite({.6, .6, .6});
+    // auto camera = CreatePinholeCamera({0, 0, 5}, {0, 0, -1}, {1, 0, 0}, {.6f, .6f});
+    auto camera = CreatePinholeCamera({-2.3, 0, 0}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
+
+    scene.Commit();
+    auto canvas = ExecuteRendering(scene, *camera, {400, 400}, 100);
+    canvas.Finalize("d:/test2.png", 2.f);
+    return;
+
+    /*
 
     auto scene_desc = CreateScene0();
 
@@ -73,11 +101,15 @@ void foo()
 
     auto camera = CreatePinholeCamera(scene_desc->camera->origin, scene_desc->camera->forward,
                                       scene_desc->camera->upward, scene_desc->camera->fov);
-    
-	scene.Commit();
+
+
+
+
+    scene.Commit();
     auto canvas = ExecuteRendering(scene, *camera, {200, 200}, 20);
     canvas.Finalize("d:/test2.png", 2.f);
     return;
+    //*/
 }
 
 #pragma optimize("", on)
@@ -113,7 +145,7 @@ Camera::Ptr CreateCornellBoxCamera()
 
 int main()
 {
-    srand(10240);
+    srand(1040);
     foo();
     return 0;
 

@@ -14,7 +14,10 @@ namespace akane
 
         std::array<T, N> data;
 
-        constexpr Vec() noexcept = default;
+		constexpr Vec() noexcept
+		{
+			data.fill({});
+		}
         constexpr Vec(T value) noexcept
         {
             data.fill(value);
@@ -84,6 +87,22 @@ namespace akane
 		{
 			static_assert(N >= 3);
 			return data[2];
+		}
+
+		T Max() const noexcept
+		{
+			T result = data[0];
+			for (const auto& x : data) { result = max(result, x); }
+
+			return result;
+		}
+
+		T Min() const noexcept
+		{
+			T result = data[0];
+			for (const auto& x : data) { result = min(result, x); }
+
+			return result;
 		}
 
         T Sum() const noexcept

@@ -9,5 +9,4 @@ namespace akane
     using RGBSpectrum = Vec3f;
 	
 	using Spectrum = RGBSpectrum;
-
 } // namespace akane

@@ -9,4 +9,4 @@ target_include_directories(akane-core
 	PRIVATE ./src)
 
 target_link_libraries(akane-core
-	PUBLIC external::embree)
+	PUBLIC external::embree external::tinyobjloader)

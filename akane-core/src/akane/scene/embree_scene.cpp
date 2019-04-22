@@ -131,113 +131,303 @@ namespace akane
         }
     }
 
-    unsigned EmbreeScene::AddMesh(MeshDesc::SharedPtr mesh_data)
+    void ParseMeshBuffer(EmbreeMeshBuffer& mesh_buffer, const MeshDesc& mesh_data,
+                         const Transform& transform)
     {
-        auto device   = GetEmbreeDevice();
-        auto rtc_mesh = rtcNewGeometry(device, RTCGeometryType::RTC_GEOMETRY_TYPE_TRIANGLE);
-
-        // register vertices
-        auto rtc_vertices = rtcSetNewGeometryBuffer(rtc_mesh, RTCBufferType::RTC_BUFFER_TYPE_VERTEX,
-                                                    0, RTC_FORMAT_FLOAT3, 3 * sizeof(float),
-                                                    mesh_data->vertices.size());
+        // copy vertex data
         {
-            auto p = reinterpret_cast<float*>(rtc_vertices);
-            for (const auto& vertex : mesh_data->vertices)
+            auto vertex_count        = mesh_data.vertices.size();
+            mesh_buffer.vertex_count = vertex_count;
+            mesh_buffer.vertex_data  = std::make_unique<float[]>(3 * vertex_count + 1);
+
+            auto p = mesh_buffer.vertex_data.get();
+            for (const auto& vertex : mesh_data.vertices)
             {
-                *p = vertex.X();
-                ++p;
+				auto transformed = transform.Apply(vertex);
 
-                *p = vertex.Y();
-                ++p;
-
-                *p = vertex.Z();
-                ++p;
+				*(p++) = transformed.X();
+				*(p++) = transformed.Y();
+				*(p++) = transformed.Z();
             }
+
+            *p = 0.f;
         }
 
-        // register triangles
-        auto rtc_triangles = rtcSetNewGeometryBuffer(
-            rtc_mesh, RTCBufferType::RTC_BUFFER_TYPE_INDEX, 0, RTCFormat::RTC_FORMAT_UINT3,
-            3 * sizeof(uint32_t), mesh_data->triangles.size());
+        // copy normal data
         {
-            auto p = reinterpret_cast<uint32_t*>(rtc_triangles);
-            for (const auto& triangle : mesh_data->triangles)
+            auto normal_count        = mesh_data.normals.size();
+            mesh_buffer.normal_count = normal_count;
+            mesh_buffer.normal_data  = std::make_unique<float[]>(3 * normal_count + 1);
+
+            auto p = mesh_buffer.normal_data.get();
+            for (const auto& normal : mesh_data.normals)
             {
-                *p = triangle.X();
-                ++p;
+				auto transformed = transform.ApplyLinear(normal);
 
-                *p = triangle.Y();
-                ++p;
+				*(p++) = transformed.X();
+				*(p++) = transformed.Y();
+				*(p++) = transformed.Z();
+            }
 
-                *p = triangle.Z();
-                ++p;
+            *p = 0.f;
+        }
+
+        // copy uv data
+        {
+            auto uv_count        = mesh_data.uv.size();
+            mesh_buffer.uv_count = uv_count;
+            mesh_buffer.uv_data  = std::make_unique<float[]>(3 * uv_count + 1);
+
+            auto p = mesh_buffer.uv_data.get();
+            for (const auto& uv : mesh_data.uv)
+            {
+				*(p++) = uv.X();
+				*(p++) = uv.Y();
+            }
+
+            *p = 0.f;
+        }
+    }
+
+    void ParseMeshGeometry(EmbreeMeshGeometry& geometry, const GeometryDesc& geom_desc,
+                           const Transform& transform)
+    {
+        auto triangle_count = geom_desc.triangle_indices.size();
+
+        // copy triangle indices
+        {
+            geometry.triangle_count   = triangle_count;
+            geometry.triangle_indices = std::make_unique<uint32_t[]>(3 * triangle_count + 1);
+
+            auto p = geometry.triangle_indices.get();
+            for (const auto& triangle : geom_desc.triangle_indices)
+            {
+				*(p++) = triangle.X();
+				*(p++) = triangle.Y();
+				*(p++) = triangle.Z();
+            }
+
+            *p = 0.f;
+        }
+
+        // copy normal indices if presented
+        if (!geom_desc.normal_indices.empty())
+        {
+            AKANE_REQUIRE(geom_desc.normal_indices.size() == triangle_count);
+
+            geometry.normal_indices = std::make_unique<uint32_t[]>(3 * triangle_count + 1);
+
+            auto p = geometry.normal_indices.get();
+            for (const auto& normal : geom_desc.normal_indices)
+            {
+				*(p++) = normal.X();
+				*(p++) = normal.Y();
+				*(p++) = normal.Z();
+            }
+
+            *p = 0.f;
+        }
+
+        // copy uv indices if presented
+        if (!geom_desc.uv_indices.empty())
+        {
+            AKANE_REQUIRE(geom_desc.uv_indices.size() == triangle_count);
+
+            geometry.uv_indices = std::make_unique<uint32_t[]>(3 * triangle_count + 1);
+
+            auto p = geometry.uv_indices.get();
+            for (const auto& uv : geom_desc.uv_indices)
+            {
+				*(p++) = uv.X();
+				*(p++) = uv.Y();
+            }
+
+            *p = 0.f;
+        }
+    }
+
+    void EmbreeScene::AddMesh(MeshDesc::SharedPtr mesh_desc, const Transform& transform)
+    {
+        auto mesh_buffer = Construct<EmbreeMeshBuffer>();
+        ParseMeshBuffer(*mesh_buffer, *mesh_desc, transform);
+
+        for (const auto& geom_desc : mesh_desc->geomtries)
+        {
+            auto geometry = Construct<EmbreeMeshGeometry>();
+            ParseMeshGeometry(*geometry, *geom_desc, transform);
+
+            geometry->mesh_buffer = mesh_buffer;
+            geometry->area_light  = nullptr;
+            geometry->material    = nullptr;
+
+            // allocate id for the geometry
+            auto geom_id      = RegisterMeshGeometry(geometry);
+            geometry->geom_id = geom_id;
+
+            // load material and light
+            if (geom_desc->material != nullptr)
+            {
+                const auto& material = *geom_desc->material;
+                if (material.emission.Max() > 1e-5)
+                {
+                    if (geometry->triangle_count > 1)
+                    {
+                        throw 0;
+                    }
+
+                    auto primitive       = InstantiatePrimitive(geom_id, 0);
+                    geometry->area_light = CreateLight_Area(primitive, material.emission);
+                }
+
+                if (material.kd.Max() > 1e-5)
+                {
+                    // TODO: parse material
+                    auto albedo  = material.kd;
+                    auto texture = CreateTexture_Solid({albedo});
+
+                    geometry->material = CreateMaterial_Lambertian(texture);
+                }
             }
         }
+    }
+
+    void EmbreeScene::AddGround(akFloat z, const Spectrum& albedo)
+    {
+        auto mesh_buffer = Construct<EmbreeMeshBuffer>();
+
+        {
+            mesh_buffer->vertex_count = 4;
+            mesh_buffer->vertex_data  = std::make_unique<float[]>(13);
+
+            auto p = mesh_buffer->vertex_data.get();
+            p[0]   = -1e5;
+            p[1]   = -1e5;
+            p[2]   = z;
+            p[3]   = -1e5;
+            p[4]   = 1e5;
+            p[5]   = z;
+            p[6]   = 1e5;
+            p[7]   = 1e5;
+            p[8]   = z;
+            p[9]   = 1e5;
+            p[10]  = -1e5;
+            p[11]  = z;
+            p[12]  = 0;
+
+            mesh_buffer->normal_count = 0;
+            mesh_buffer->normal_data  = nullptr;
+
+            mesh_buffer->uv_count = 0;
+            mesh_buffer->uv_data  = nullptr;
+        }
+
+        auto geometry         = Construct<EmbreeMeshGeometry>();
+        geometry->mesh_buffer = mesh_buffer;
+        {
+            geometry->triangle_count   = 2;
+            geometry->triangle_indices = std::make_unique<uint32_t[]>(7);
+
+            auto p = geometry->triangle_indices.get();
+            p[0]   = 0;
+            p[1]   = 1;
+            p[2]   = 2;
+            p[3]   = 0;
+            p[4]   = 2;
+            p[5]   = 3;
+            p[6]   = 0;
+
+            geometry->normal_indices = nullptr;
+            geometry->uv_indices     = nullptr;
+        }
+
+        geometry->geom_id = RegisterMeshGeometry(geometry);
+
+        auto texture = CreateTexture_Solid({albedo});
+        auto mat     = CreateMaterial_Lambertian(texture);
+
+        geometry->material   = mat;
+        geometry->area_light = nullptr;
+    }
+    void EmbreeScene::AddTriangleLight(const Point3f& v0, const Point3f& v1, const Point3f& v2,
+                                       const Spectrum& albedo)
+    {
+        auto mesh_buffer = Construct<EmbreeMeshBuffer>();
+
+        {
+            mesh_buffer->vertex_count = 3;
+            mesh_buffer->vertex_data  = std::make_unique<float[]>(10);
+
+            auto p = mesh_buffer->vertex_data.get();
+            p[0]   = v0[0];
+            p[1]   = v0[1];
+            p[2]   = v0[2];
+            p[3]   = v1[0];
+            p[4]   = v1[1];
+            p[5]   = v1[2];
+            p[6]   = v2[0];
+            p[7]   = v2[1];
+            p[8]   = v2[2];
+            p[9]   = 0;
+
+            mesh_buffer->normal_count = 0;
+            mesh_buffer->normal_data  = nullptr;
+
+            mesh_buffer->uv_count = 0;
+            mesh_buffer->uv_data  = nullptr;
+        }
+
+        auto geometry         = Construct<EmbreeMeshGeometry>();
+        geometry->mesh_buffer = mesh_buffer;
+        {
+            geometry->triangle_count   = 1;
+            geometry->triangle_indices = std::make_unique<uint32_t[]>(4);
+
+            auto p = geometry->triangle_indices.get();
+            p[0]   = 0;
+            p[1]   = 1;
+            p[2]   = 2;
+            p[6]   = 0;
+
+            geometry->normal_indices = nullptr;
+            geometry->uv_indices     = nullptr;
+        }
+
+        geometry->geom_id = RegisterMeshGeometry(geometry);
+
+        auto primitive = InstantiatePrimitive(geometry->geom_id, 0);
+
+        geometry->material   = nullptr;
+        geometry->area_light = CreateLight_Area(primitive, albedo);
+    }
+
+    unsigned EmbreeScene::RegisterMeshGeometry(EmbreeMeshGeometry* geometry)
+    {
+        auto id          = this->geoms_.size();
+        auto mesh_buffer = geometry->mesh_buffer;
+
+        // crate embree geometry instance
+        auto rtc_geom =
+            rtcNewGeometry(GetEmbreeDevice(), RTCGeometryType::RTC_GEOMETRY_TYPE_TRIANGLE);
+
+        // register vertex buffer
+        rtcSetSharedGeometryBuffer(rtc_geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3,
+                                   mesh_buffer->vertex_data.get(), 0, 3 * 4,
+                                   mesh_buffer->vertex_count);
+
+        // register triangle buffer
+        rtcSetSharedGeometryBuffer(rtc_geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
+                                   geometry->triangle_indices.get(), 0, 3 * 4,
+                                   geometry->triangle_count);
 
         // finalize
-        rtcCommitGeometry(rtc_mesh);
+        rtcCommitGeometry(rtc_geom);
+        rtcAttachGeometryByID(this->scene_, rtc_geom, id);
 
-        auto id = this->geoms_.size();
-        rtcAttachGeometryByID(scene_, rtc_mesh, id);
+        // rtcReleaseGeometry(rtc_geom);
 
-        rtcReleaseGeometry(rtc_mesh);
-
-        // create primitive item
-        auto geometry       = Construct<EmbreeMeshGeometry>();
-		geometry->geom_id   = id;
-        geometry->mesh_data = mesh_data;
-
-		this->geoms_.push_back(geometry);
-
-		// load light
-		if (mesh_data->area_light != nullptr)
-		{
-			if (mesh_data->triangles.size() != 1)
-			{
-				throw 0;
-			}
-
-			auto primitive = InstantiatePrimitive(id, 0);
-			auto light = CreateLight_Area(primitive, mesh_data->area_light->albedo);
-
-			geometry->area_light = reinterpret_cast<AreaLight*>(light);
-		}
-		else
-		{
-			geometry->area_light = nullptr;
-		}
-
-		// load material
-        if (mesh_data->material != nullptr && mesh_data->material->type == "lambertian")
-        {
-			const auto& albedo = mesh_data->material->params.at("albedo");
-
-			if (albedo.type() == typeid(Vec3f))
-			{
-				std::vector<Spectrum> v;
-				v.resize(mesh_data->triangles.size(), std::any_cast<Vec3f>(albedo));
-
-				auto texture = CreateTexture_Solid(v);
-				auto material = CreateMaterial_Lambertian(texture);
-
-				geometry->material = material;
-			}
-			else if (albedo.type() == typeid(std::vector<Vec3f>))
-			{
-				auto texture = CreateTexture_Solid(std::any_cast<std::vector<Vec3f>>(albedo));
-				auto material = CreateMaterial_Lambertian(texture);
-
-				geometry->material = material;
-			}
-			else
-			{
-				throw 0;
-			}
-        }
-		else
-		{
-			geometry->material = nullptr;
-		}
+        // register id
+        geometry->geom_id = id;
+        this->geoms_.push_back(geometry);
 
         return id;
     }

@@ -1,6 +1,7 @@
 #pragma once
 #include "akane/core.h"
 #include "akane/spectrum.h"
+#include "akane/io/image.h"
 #include <memory>
 
 namespace akane
@@ -22,7 +23,7 @@ namespace akane
 
         Spectrum Value(const IntersectionInfo& isect) const noexcept override
         {
-            return albedo_[isect.index];
+            return albedo_[0];
         }
 
     private:
@@ -55,4 +56,24 @@ namespace akane
         const Texture* t0_;
         const Texture* t1_;
     };
+
+	class ImageTexture : public Texture
+	{
+	public:
+		ImageTexture(Image::SharedPtr img) : img_(img)
+		{
+		}
+
+		Spectrum Value(const IntersectionInfo& isect) const noexcept override
+		{
+			auto x = isect.uv.X() * (img_->Width() - 1);
+			auto y = isect.uv.Y() * (img_->Height() - 1);
+			auto pixel = img_->At(x, y);
+
+			auto f = 1.f / 255.f;
+			return Spectrum{ pixel.r * f, pixel.g * f ,pixel.b * f };
+		}
+	private:
+		Image::SharedPtr img_;
+	};
 } // namespace akane

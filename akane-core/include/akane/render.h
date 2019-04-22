@@ -34,6 +34,12 @@ namespace akane
 
                 canvas.At(x, y) = acc / static_cast<akFloat>(sample_per_pixel);
             }
+
+			if (y % max(1, resolution.Y() / 100) == 0)
+			{
+				auto progress = static_cast<int>(y * 1.f / resolution.Y() * 100);
+				printf("progress: %d%\n", progress);
+			}
         }
 
         return canvas;
