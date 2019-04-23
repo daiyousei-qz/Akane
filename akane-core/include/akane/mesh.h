@@ -1,5 +1,6 @@
 #pragma once
 #include "akane/core.h"
+#include "akane/io/image.h"
 #include <memory>
 #include <vector>
 #include <string>
@@ -21,9 +22,9 @@ namespace akane
 
 		Vec3f emission;
 
-		std::string ambient_texture;
-		std::string diffuse_texture;
-		std::string specular_texture;
+		Image::SharedPtr ambient_texture;
+		Image::SharedPtr diffuse_texture;
+		Image::SharedPtr specular_texture;
 	};
 
 	struct GeometryDesc
@@ -46,6 +47,8 @@ namespace akane
         std::vector<Point3f> vertices;
 		std::vector<Point3f> normals;
 		std::vector<Point2f> uv;
+
+		std::unordered_map<std::string, Image::SharedPtr> texture_lookup;
 
 		std::vector<GeometryDesc::SharedPtr> geomtries;
     };

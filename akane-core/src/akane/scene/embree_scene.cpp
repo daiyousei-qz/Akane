@@ -101,19 +101,49 @@ namespace akane
 
         if (geom_id != RTC_INVALID_GEOMETRY_ID && prim_id != RTC_INVALID_GEOMETRY_ID)
         {
+            auto geometry = geoms_[geom_id];
+
             isect.t = ray_hit.ray.tfar;
 
             isect.point = ray.o + isect.t * ray.d;
 
             isect.ng = Vec3f{ray_hit.hit.Ng_x, ray_hit.hit.Ng_y, ray_hit.hit.Ng_z}.Normalized();
 
-            isect.ns = isect.ng;
+            // override scattering normal
+            if (geometry->HasVertexNormal() && false)
+            {
+                auto [n0, n1, n2] = geometry->GetVertexNormal(prim_id);
+
+                auto uu = ray_hit.hit.u;
+                auto vv = ray_hit.hit.v;
+                auto ww = 1 - uu - vv;
+
+                isect.ns = ww * n0 + uu * n1 + vv * n2;
+            }
+            else
+            {
+                isect.ns = isect.ng;
+            }
             if (isect.ns.Dot(ray.d) > 0)
             {
                 isect.ns = -isect.ns;
             }
 
-            isect.uv = {ray_hit.hit.u, ray_hit.hit.v};
+            // override uv
+            if (geometry->HasVertexUV())
+            {
+                auto [uv0, uv1, uv2] = geometry->GetVertexUV(prim_id);
+
+                auto uu = ray_hit.hit.u;
+                auto vv = ray_hit.hit.v;
+                auto ww = 1 - uu - vv;
+
+                isect.uv = ww * uv0 + uu * uv1 + vv * uv2;
+            }
+            else
+            {
+                isect.uv = {ray_hit.hit.u, ray_hit.hit.v};
+            }
 
             isect.index = prim_id;
 
@@ -143,11 +173,11 @@ namespace akane
             auto p = mesh_buffer.vertex_data.get();
             for (const auto& vertex : mesh_data.vertices)
             {
-				auto transformed = transform.Apply(vertex);
+                auto transformed = transform.Apply(vertex);
 
-				*(p++) = transformed.X();
-				*(p++) = transformed.Y();
-				*(p++) = transformed.Z();
+                *(p++) = transformed.X();
+                *(p++) = transformed.Y();
+                *(p++) = transformed.Z();
             }
 
             *p = 0.f;
@@ -157,35 +187,51 @@ namespace akane
         {
             auto normal_count        = mesh_data.normals.size();
             mesh_buffer.normal_count = normal_count;
-            mesh_buffer.normal_data  = std::make_unique<float[]>(3 * normal_count + 1);
 
-            auto p = mesh_buffer.normal_data.get();
-            for (const auto& normal : mesh_data.normals)
+            if (normal_count > 0)
             {
-				auto transformed = transform.ApplyLinear(normal);
+                mesh_buffer.normal_data = std::make_unique<float[]>(3 * normal_count + 1);
 
-				*(p++) = transformed.X();
-				*(p++) = transformed.Y();
-				*(p++) = transformed.Z();
+                auto p = mesh_buffer.normal_data.get();
+                for (const auto& normal : mesh_data.normals)
+                {
+                    auto transformed = transform.ApplyLinear(normal);
+
+                    *(p++) = transformed.X();
+                    *(p++) = transformed.Y();
+                    *(p++) = transformed.Z();
+                }
+
+                *p = 0.f;
             }
-
-            *p = 0.f;
+            else
+            {
+                mesh_buffer.normal_data = nullptr;
+            }
         }
 
         // copy uv data
         {
             auto uv_count        = mesh_data.uv.size();
             mesh_buffer.uv_count = uv_count;
-            mesh_buffer.uv_data  = std::make_unique<float[]>(3 * uv_count + 1);
 
-            auto p = mesh_buffer.uv_data.get();
-            for (const auto& uv : mesh_data.uv)
+            if (uv_count > 0)
             {
-				*(p++) = uv.X();
-				*(p++) = uv.Y();
-            }
+                mesh_buffer.uv_data = std::make_unique<float[]>(2 * uv_count + 1);
 
-            *p = 0.f;
+                auto p = mesh_buffer.uv_data.get();
+                for (const auto& uv : mesh_data.uv)
+                {
+                    *(p++) = uv.X();
+                    *(p++) = uv.Y();
+                }
+
+                *p = 0.f;
+            }
+            else
+            {
+                mesh_buffer.uv_data = nullptr;
+            }
         }
     }
 
@@ -202,9 +248,9 @@ namespace akane
             auto p = geometry.triangle_indices.get();
             for (const auto& triangle : geom_desc.triangle_indices)
             {
-				*(p++) = triangle.X();
-				*(p++) = triangle.Y();
-				*(p++) = triangle.Z();
+                *(p++) = triangle.X();
+                *(p++) = triangle.Y();
+                *(p++) = triangle.Z();
             }
 
             *p = 0.f;
@@ -220,9 +266,9 @@ namespace akane
             auto p = geometry.normal_indices.get();
             for (const auto& normal : geom_desc.normal_indices)
             {
-				*(p++) = normal.X();
-				*(p++) = normal.Y();
-				*(p++) = normal.Z();
+                *(p++) = normal.X();
+                *(p++) = normal.Y();
+                *(p++) = normal.Z();
             }
 
             *p = 0.f;
@@ -238,8 +284,9 @@ namespace akane
             auto p = geometry.uv_indices.get();
             for (const auto& uv : geom_desc.uv_indices)
             {
-				*(p++) = uv.X();
-				*(p++) = uv.Y();
+                *(p++) = uv.X();
+                *(p++) = uv.Y();
+                *(p++) = uv.Z();
             }
 
             *p = 0.f;
@@ -279,14 +326,7 @@ namespace akane
                     geometry->area_light = CreateLight_Area(primitive, material.emission);
                 }
 
-                if (material.kd.Max() > 1e-5)
-                {
-                    // TODO: parse material
-                    auto albedo  = material.kd;
-                    auto texture = CreateTexture_Solid({albedo});
-
-                    geometry->material = CreateMaterial_Lambertian(texture);
-                }
+                geometry->material = LoadMaterial(material);
             }
         }
     }
@@ -340,7 +380,7 @@ namespace akane
             geometry->uv_indices     = nullptr;
         }
 
-        geometry->geom_id = RegisterMeshGeometry(geometry);
+        RegisterMeshGeometry(geometry);
 
         auto texture = CreateTexture_Solid({albedo});
         auto mat     = CreateMaterial_Lambertian(texture);
@@ -380,7 +420,7 @@ namespace akane
         geometry->mesh_buffer = mesh_buffer;
         {
             geometry->triangle_count   = 1;
-            geometry->triangle_indices = std::make_unique<uint32_t[]>(4);
+            geometry->triangle_indices = std::make_unique<uint32_t[]>(7);
 
             auto p = geometry->triangle_indices.get();
             p[0]   = 0;
@@ -392,7 +432,7 @@ namespace akane
             geometry->uv_indices     = nullptr;
         }
 
-        geometry->geom_id = RegisterMeshGeometry(geometry);
+        RegisterMeshGeometry(geometry);
 
         auto primitive = InstantiatePrimitive(geometry->geom_id, 0);
 

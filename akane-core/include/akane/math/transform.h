@@ -28,7 +28,29 @@ namespace akane
             return Transform(new_vx, new_vy, new_vz, other.p_);
         }
 
-        Transform MoveTo(const Vec3f& p) const noexcept
+        Transform Scale(akFloat ratio) const noexcept
+        {
+            return Also(Transform::CreateScale(ratio));
+        }
+
+        Transform RotateX(akFloat theta) const noexcept
+        {
+            return Also(Transform::CreateRotateX(theta));
+        }
+
+        Transform RotateY(akFloat theta) const noexcept
+        {
+            return Also(Transform::CreateRotateY(theta));
+        }
+
+        Transform RotateZ(akFloat theta) const noexcept
+        {
+            return Also(Transform::CreateRotateZ(theta));
+        }
+
+        // this method should be called at the last of calling chain
+        // as this is non-linear
+        Transform Move(const Vec3f& p) const noexcept
         {
             return Transform(vx_, vy_, vz_, p);
         }
@@ -70,6 +92,9 @@ namespace akane
             // printf("\n%6f, %6f, %6f\n", p[0], p[1], p[2]);
         }
 
+        // builtin transform factory
+        //
+
         static const Transform& Identity()
         {
             static auto id = Transform({1, 0, 0}, {0, 1, 0}, {0, 0, 1});
@@ -77,28 +102,28 @@ namespace akane
             return id;
         }
 
-        static const Transform Scale(akFloat ratio)
+        static const Transform CreateScale(akFloat ratio)
         {
             AKANE_REQUIRE(ratio > 0);
 
             return Transform({ratio, 0, 0}, {0, ratio, 0}, {0, 0, ratio});
         }
 
-        static Transform RotateX(akFloat theta)
+        static Transform CreateRotateX(akFloat theta)
         {
             auto cos_theta = cos(theta);
             auto sin_theta = sin(theta);
             return Transform({1, 0, 0}, {0, cos_theta, sin_theta}, {0, -sin_theta, cos_theta});
         }
 
-        static Transform RotateY(akFloat theta)
+        static Transform CreateRotateY(akFloat theta)
         {
             auto cos_theta = cos(theta);
             auto sin_theta = sin(theta);
             return Transform({cos_theta, 0, -sin_theta}, {0, 1, 0}, {sin_theta, 0, cos_theta});
         }
 
-        static Transform RotateZ(akFloat theta)
+        static Transform CreateRotateZ(akFloat theta)
         {
             auto cos_theta = cos(theta);
             auto sin_theta = sin(theta);

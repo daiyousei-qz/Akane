@@ -11,6 +11,8 @@ namespace akane
     class Canvas
     {
     public:
+		using SharedPtr = std::shared_ptr<Canvas>;
+
         Canvas(int width, int height) : width_(width), height_(height)
         {
             assert(width > 0 && height > 0);

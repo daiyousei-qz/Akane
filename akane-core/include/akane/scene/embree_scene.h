@@ -41,7 +41,7 @@ namespace akane
             return Point3f{p[0], p[1], p[2]};
         }
 
-        Point2f GetUv(size_t index) const noexcept
+        Point2f GetUV(size_t index) const noexcept
         {
             AKANE_ASSERT(index < uv_count);
 
@@ -58,14 +58,17 @@ namespace akane
         size_t triangle_count;
         std::unique_ptr<uint32_t[]> triangle_indices; // layouts: [x, y, z]...
         std::unique_ptr<uint32_t[]> normal_indices;   // layouts: [x, y, z]...
-        std::unique_ptr<uint32_t[]> uv_indices;       // layouts: [u, v]...
+        std::unique_ptr<uint32_t[]> uv_indices;       // layouts: [x, y, z]...
 
         const AreaLight* area_light;
         const Material* material;
 
         static constexpr size_t kTriangleIndexStride = 3;
         static constexpr size_t kNormalIndexStride   = 3;
-        static constexpr size_t kUVIndexStride       = 2;
+        static constexpr size_t kUVIndexStride       = 3;
+
+		auto GetAreaLight() const noexcept { return area_light; }
+		auto GetMaterial() const noexcept { return material; }
 
         std::tuple<Point3f, Point3f, Point3f> GetTriangle(size_t index) const noexcept
         {
@@ -74,6 +77,31 @@ namespace akane
             auto p = triangle_indices.get() + index * kTriangleIndexStride;
             return {mesh_buffer->GetVertex(p[0]), mesh_buffer->GetVertex(p[1]),
                     mesh_buffer->GetVertex(p[2])};
+        }
+
+        bool HasVertexNormal() const noexcept
+        {
+            return normal_indices != nullptr;
+        }
+        std::tuple<Vec3f, Vec3f, Vec3f> GetVertexNormal(size_t index) const noexcept
+        {
+            AKANE_ASSERT(normal_indices != nullptr && index < triangle_count);
+
+            auto p = normal_indices.get() + index * kNormalIndexStride;
+            return {mesh_buffer->GetNormal(p[0]), mesh_buffer->GetNormal(p[1]),
+                    mesh_buffer->GetNormal(p[2])};
+        }
+
+        bool HasVertexUV() const noexcept
+        {
+            return uv_indices != nullptr;
+        }
+        std::tuple<Point2f, Point2f, Point2f> GetVertexUV(size_t index) const noexcept
+        {
+            AKANE_ASSERT(uv_indices != nullptr && index < triangle_count);
+
+            auto p = uv_indices.get() + index * kUVIndexStride;
+            return {mesh_buffer->GetUV(p[0]), mesh_buffer->GetUV(p[1]), mesh_buffer->GetUV(p[2]) };
         }
     };
 
@@ -88,16 +116,18 @@ namespace akane
         bool Intersect(const Ray& ray, Workspace& workspace,
                        IntersectionInfo& isect) const override;
 
-        void AddMesh(MeshDesc::SharedPtr mesh_data, const Transform& transform = Transform::Identity());
+        void AddMesh(MeshDesc::SharedPtr mesh_data,
+                     const Transform& transform = Transform::Identity());
 
-		// for testing
-		void AddGround(akFloat z, const Spectrum& albedo);
-		void AddTriangleLight(const Point3f& v0, const Point3f& v1, const Point3f& v2, const Spectrum& albedo);
+        // for testing
+        void AddGround(akFloat z, const Spectrum& albedo);
+        void AddTriangleLight(const Point3f& v0, const Point3f& v1, const Point3f& v2,
+                              const Spectrum& albedo);
 
-	private:
-		unsigned RegisterMeshGeometry(EmbreeMeshGeometry* geometry);
+    private:
+        unsigned RegisterMeshGeometry(EmbreeMeshGeometry* geometry);
 
-		Primitive* InstantiatePrimitive(unsigned geom_id, unsigned prim_id)
+        Primitive* InstantiatePrimitive(unsigned geom_id, unsigned prim_id)
         {
             auto p = Construct<EmbreeTriangle>();
             CreatePrimitiveAux(*p, geom_id, prim_id);
@@ -119,10 +149,10 @@ namespace akane
             p.geom_id_ = geom_id;
             p.prim_id_ = prim_id;
 
-			auto [v0, v1, v2] = geoms_.at(geom_id)->GetTriangle(prim_id);
-            p.v0_ = v0;
-            p.v1_ = v1;
-            p.v2_ = v2;
+            auto [v0, v1, v2] = geoms_.at(geom_id)->GetTriangle(prim_id);
+            p.v0_             = v0;
+            p.v1_             = v1;
+            p.v2_             = v2;
 
             auto e1 = p.v1_ - p.v0_;
             auto e2 = p.v2_ - p.v0_;

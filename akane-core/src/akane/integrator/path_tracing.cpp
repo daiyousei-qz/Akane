@@ -17,7 +17,8 @@ namespace akane
             Spectrum result  = kFloatZero;
             Spectrum contrib = {1, 1, 1};
 
-            Ray ray = camera_ray;
+            bool from_specular = true;
+            Ray ray            = camera_ray;
             for (int bounce = 0; bounce < kMaxBounce; ++bounce)
             {
                 ctx.workspace.Clear();
@@ -25,11 +26,11 @@ namespace akane
                 IntersectionInfo isect;
                 if (!scene.Intersect(ray, ctx.workspace, isect))
                 {
-					// blend global light
-					for (auto global_light : scene.GetGlobalLights())
-					{
-						result += contrib * global_light->Eval(ray);
-					}
+                    // blend global light
+                    for (auto global_light : scene.GetGlobalLights())
+                    {
+                        result += contrib * global_light->Eval(ray);
+                    }
 
                     break;
                 }
@@ -37,7 +38,7 @@ namespace akane
                 // if the primitive emits light
                 // NOTE as light source is also explicit sampled, only camera ray needs accumulation
                 // TODO: specular reflection
-                if (isect.area_light && bounce == 0)
+                if (isect.area_light && from_specular)
                 {
                     result += contrib * isect.area_light->Eval(ray);
                 }
@@ -51,28 +52,34 @@ namespace akane
                 auto bsdf_coord = LocalCoordinateTransform(isect.ns);
                 auto bsdf_wo    = bsdf_coord.WorldToLocal(-ray.d);
 
-                // estimate direct lighting
-                for (const auto& light : scene.GetLights())
-                {
-                    if (light == isect.area_light)
-                    {
-                        continue;
-                    }
+				auto is_specular_bsdf = bsdf->GetType().Contain(BsdfType::Specular);
+				from_specular = is_specular_bsdf;
 
-                    auto vtest = light->SampleLi(sampler.Get2D(), isect);
+                // estimate direct light if the current bsdf excludes specular
+				if (!is_specular_bsdf)
+				{
+					for (const auto& light : scene.GetLights())
+					{
+						if (light == isect.area_light)
+						{
+							continue;
+						}
 
-                    if (vtest.Test(scene, ctx.workspace))
-                    {
-                        auto shadow_ray = vtest.ShadowRay();
-                        auto wi         = bsdf_coord.WorldToLocal(shadow_ray.d);
+						auto vtest = light->SampleLi(sampler.Get2D(), isect);
 
-                        // direct radiance from light source
-                        auto f  = bsdf->Eval(bsdf_wo, wi) * wi.Dot(kBsdfNormal);
-                        auto ld = light->Eval(shadow_ray);
+						if (vtest.Test(scene, ctx.workspace))
+						{
+							auto shadow_ray = vtest.ShadowRay();
+							auto wi = bsdf_coord.WorldToLocal(shadow_ray.d);
 
-                        result += contrib * ld * f / vtest.Pdf();
-                    }
-                }
+							// direct radiance from light source
+							auto f = bsdf->Eval(bsdf_wo, wi) * wi.Dot(kBsdfNormal);
+							auto ld = light->Eval(shadow_ray);
+
+							result += contrib * ld * f / vtest.Pdf();
+						}
+					}
+				}
 
                 // sample bsdf
                 Vec3f wi;

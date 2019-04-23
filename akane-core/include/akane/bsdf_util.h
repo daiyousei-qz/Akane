@@ -8,7 +8,7 @@ namespace akane
     // assuming v and u is normalized
     inline void ComputeReflectedRay(const Vec3f& v, const Vec3f& n, Vec3f& reflected) noexcept
     {
-        reflected = v - 2.f * v.Dot(n) * n;
+        reflected = -v + 2.f * v.Dot(n) * n;
     }
 
     // v: direction of incoming ray
