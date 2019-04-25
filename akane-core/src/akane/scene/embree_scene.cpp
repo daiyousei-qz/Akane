@@ -109,8 +109,8 @@ namespace akane
 
             isect.ng = Vec3f{ray_hit.hit.Ng_x, ray_hit.hit.Ng_y, ray_hit.hit.Ng_z}.Normalized();
 
-            // override scattering normal
-            if (geometry->HasVertexNormal() && false)
+            // override shading normal
+            if (geometry->HasVertexNormal())
             {
                 auto [n0, n1, n2] = geometry->GetVertexNormal(prim_id);
 

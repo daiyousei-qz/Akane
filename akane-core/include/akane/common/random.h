@@ -13,7 +13,10 @@ namespace akane
     class RandomEngine final
     {
     public:
-        RandomEngine() { Seed(1); }
+        RandomEngine()
+        {
+            Seed(1);
+        }
 
         void Seed(uint64_t value) noexcept
         {
@@ -56,13 +59,16 @@ namespace akane
     class RandomSource
     {
     public:
-        bool SampleBool(akFloat prob) { return UniformReal() < prob; }
+        bool SampleBool(akFloat prob)
+        {
+            return UniformReal() < prob;
+        }
 
-        //int UniformInt(int min = 0, int max = 1) { return 0; }
+        // int UniformInt(int min = 0, int max = 1) { return 0; }
 
         akFloat UniformReal(akFloat min = kFloatZero, akFloat max = kFloatOne)
         {
-			return static_cast<akFloat>(rand()) / RAND_MAX;
+            return static_cast<akFloat>(rand()) / (RAND_MAX + 1);
         }
 
     private:

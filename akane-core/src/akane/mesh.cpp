@@ -106,12 +106,12 @@ namespace akane
                     geom->triangle_indices.push_back(
                         {v0.vertex_index, v1.vertex_index, v2.vertex_index});
 
-                    if (v0.normal_index != -1)
+                    if (!mesh->normals.empty() && v0.normal_index != -1)
                     {
                         geom->normal_indices.push_back(
                             {v0.normal_index, v1.normal_index, v2.normal_index});
                     }
-                    if (v0.texcoord_index != -1)
+                    if (!mesh->uv.empty() && v0.texcoord_index != -1)
                     {
                         geom->uv_indices.push_back(
                             {v0.texcoord_index, v1.texcoord_index, v2.texcoord_index});

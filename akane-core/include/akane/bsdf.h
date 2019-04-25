@@ -15,34 +15,34 @@ namespace akane
         return wo.Z() * wi.Z() >= 0;
     }
 
-    inline akFloat CosTheta(const Vec3f& v)
+    inline akFloat CosTheta(const Vec3f& v) noexcept
     {
         return v.Z();
     }
-    inline akFloat Cos2Theta(const Vec3f& v)
+    inline akFloat Cos2Theta(const Vec3f& v) noexcept
     {
-        return v.Z()* v.Z();
+        return v.Z() * v.Z();
     }
-    inline akFloat AbsCosTheta(const Vec3f& v)
+    inline akFloat AbsCosTheta(const Vec3f& v) noexcept
     {
         return abs(v.Z());
     }
-    inline akFloat Sin2Theta(const Vec3f& v)
+    inline akFloat Sin2Theta(const Vec3f& v) noexcept
     {
         return max(kFloatZero, kFloatOne - Cos2Theta(v));
     }
 
-    inline akFloat SinTheta(const Vec3f& v)
+    inline akFloat SinTheta(const Vec3f& v) noexcept
     {
         return sqrt(Sin2Theta(v));
     }
 
-    inline akFloat TanTheta(const Vec3f& v)
+    inline akFloat TanTheta(const Vec3f& v) noexcept
     {
         return SinTheta(v) / CosTheta(v);
     }
 
-    inline akFloat Tan2Theta(const Vec3f& v)
+    inline akFloat Tan2Theta(const Vec3f& v) noexcept
     {
         return Sin2Theta(v) / Cos2Theta(v);
     }

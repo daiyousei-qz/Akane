@@ -44,7 +44,6 @@ namespace akane
             auto pixel = img_->At(x, y);
 
             auto f = 1.f / 255.f;
-            // return Spectrum{ isect.uv.X(), 0 ,0 };
             return albedo_ * Spectrum{pixel.r * f, pixel.g * f, pixel.b * f};
         }
 

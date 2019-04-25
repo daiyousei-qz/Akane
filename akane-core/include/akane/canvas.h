@@ -27,6 +27,14 @@ namespace akane
             return pixels_[y * width_ + x];
         }
 
+		void Clear()
+		{
+			for (auto& pixel : pixels_)
+			{
+				pixel = Spectrum{ 0.f };
+			}
+		}
+
         void Finalize(const std::string& filename, akFloat gamma)
         {
             std::vector<uint8_t> graph;

@@ -12,15 +12,43 @@ namespace akane
 {
     inline thread_local int GlobalThreadId = -1;
 
+    inline void ExecuteRenderIncremental(Canvas& canvas, const Scene& scene, const Camera& camera,
+                                         Point2i resolution, int sample_per_pixel)
+    {
+		RenderingContext ctx;
+
+		//auto integrator = CreateDirectIntersectionIntegrator();
+		auto integrator = CreatePathTracingIntegrator();
+		auto sampler = CreateRandomSampler();
+
+		for (int y = 0; y < resolution.Y(); ++y)
+		{
+			for (int x = 0; x < resolution.X(); ++x)
+			{
+				Spectrum acc = kFloatZero;
+				for (int i = 0; i < sample_per_pixel; ++i)
+				{
+					auto ray = camera.SpawnRay(resolution, { x, y }, sampler->Get2D());
+					auto radiance = integrator->Li(ctx, *sampler, scene, ray);
+
+					acc += radiance;
+					ctx.workspace.Clear();
+				}
+
+				canvas.At(x, y) += acc;
+			}
+		}
+    }
+
     inline Canvas::SharedPtr ExecuteRenderingSingleThread(const Scene& scene, const Camera& camera,
                                                           Point2i resolution, int sample_per_pixel)
     {
         auto canvas = std::make_shared<Canvas>(resolution.X(), resolution.Y());
         RenderingContext ctx;
 
-        // auto integrator = CreateDirectIntersectionIntegrator();
+        //auto integrator = CreateDirectIntersectionIntegrator();
         auto integrator = CreatePathTracingIntegrator();
-        auto sampler    = CreateRandomSampler();
+        auto sampler = CreateRandomSampler();
 
         for (int y = 0; y < resolution.Y(); ++y)
         {

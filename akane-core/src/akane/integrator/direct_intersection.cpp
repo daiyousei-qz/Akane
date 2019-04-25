@@ -12,8 +12,8 @@ namespace akane
             IntersectionInfo info;
             if (scene.Intersect(ray, ctx.workspace, info))
             {
-                auto nmap = (info.ns.Normalized() + Vec3f{1.f, 1.f, 1.f}) / 2.f;
-                return Spectrum{nmap.X(), nmap.Y(), nmap.Z()};
+                auto nmap = (info.ng.Normalized() + Vec3f{1.f, 1.f, 1.f}) / 2.f;
+				return Spectrum{nmap.X(), nmap.Y(), nmap.Z()};
             }
             else
             {

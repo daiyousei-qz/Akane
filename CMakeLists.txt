@@ -9,4 +9,5 @@ include(cmake/FindEmbree.cmake)
 include(cmake/FindTinyObjLoader.cmake)
 
 add_subdirectory(./akane-core)
+add_subdirectory(./akane-gui)
 add_subdirectory(./akane-shell)

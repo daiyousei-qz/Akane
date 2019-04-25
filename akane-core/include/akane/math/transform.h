@@ -1,4 +1,5 @@
 #pragma once
+#include "akane/common/language_utils.h"
 #include "akane/math/vector.h"
 
 namespace akane
