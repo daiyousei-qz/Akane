@@ -23,7 +23,7 @@ namespace akane
 
         RGBPixel At(size_t x, size_t y) const noexcept
         {
-            auto index = y * height_ * stride_ + x * stride_;
+            auto index = y * width_ * stride_ + x * stride_;
             return RGBPixel{data_[index + 0], data_[index + 1], data_[index + 2]};
         }
 

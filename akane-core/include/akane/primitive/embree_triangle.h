@@ -24,7 +24,10 @@ namespace akane
             auto e1 = v1_ - v0_;
             auto e2 = v2_ - v0_;
 
-            point_out = v0_ + u.X() * e1 + u.Y() * e2;
+			auto t = sqrt(u[0]);
+			auto k1 = 1 - t;
+			auto k2 = u[1] * t;
+            point_out = v0_ + k1 * e1 + k2 * e2;
             pdf_out   = 1. / area_;
         }
 

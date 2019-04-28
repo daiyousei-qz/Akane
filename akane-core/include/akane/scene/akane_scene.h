@@ -1,9 +1,11 @@
 #pragma once
-#include "akane/scene/scene_base.h"
+#include "akane/scene.h"
+#include "akane/primitive/composite.h"
+#include "akane/primitive/sphere.h"
 
 namespace akane
 {
-    class AkaneScene : public SceneBase
+    class AkaneScene : public Scene
     {
     public:
 		using Ptr = std::unique_ptr<AkaneScene>;

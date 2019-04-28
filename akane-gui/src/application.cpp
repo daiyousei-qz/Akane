@@ -1,8 +1,9 @@
 #include "external/imgui/imgui.h"
 #include "akane/math/transform.h"
 #include "akane/math/coordinate.h"
-#include "akane/render.h"
 #include "akane/scene/embree_scene.h"
+#include "akane/render.h"
+#include "akane/debug.h"
 #include <functional>
 
 #include <d3d11.h>
@@ -13,12 +14,14 @@ using namespace akane;
 // state that would lead to invalidation of old render canvas
 struct GlobalState
 {
+    int Version = 0; // modify this to force re-render
+
     int ResolutionWidth  = 200;
     int ResolutionHeight = 200;
 
-    float CameraOriginX = -3;
+    float CameraOriginX = -5;
     float CameraOriginY = 0;
-    float CameraOriginZ = 0;
+    float CameraOriginZ = 1;
 
     float CameraForwardX = 1;
     float CameraForwardY = 0;
@@ -28,17 +31,19 @@ struct GlobalState
     float CameraUpwardY = 0;
     float CameraUpwardZ = 1;
 
-    float CameraFovX = .5f;
-    float CameraFovY = .5f;
+    float CameraFovX = .6f;
+    float CameraFovY = .6f;
 };
 
 GlobalState CurrentState;
 GlobalState PreviousState;
 
-float DisplayScale     = 1.f;
+float DisplayScale = 400.f / CurrentState.ResolutionWidth;
 
 constexpr Vec3f kDefaultCameraForward = {1, 0, 0};
 constexpr Vec3f kDefaultCameraUpward  = {0, 0, 1};
+
+vector<GenericMaterial*> EditableMaterials;
 
 Vec3f CurrentCameraOrigin()
 {
@@ -60,9 +65,15 @@ Vec2f CurrentCameraFov()
     return Vec2f{CurrentState.CameraFovX, CurrentState.CameraFovY};
 }
 
-bool DetectGlobalStateChange()
+bool DetectGlobalResolutionChange()
 {
     return CurrentState.ResolutionWidth != PreviousState.ResolutionWidth ||
+           CurrentState.ResolutionHeight != PreviousState.ResolutionHeight;
+}
+bool DetectGlobalStateChange()
+{
+    return CurrentState.Version != PreviousState.Version ||
+           CurrentState.ResolutionWidth != PreviousState.ResolutionWidth ||
            CurrentState.ResolutionHeight != PreviousState.ResolutionHeight ||
            CurrentState.CameraOriginX != PreviousState.CameraOriginX ||
            CurrentState.CameraOriginY != PreviousState.CameraOriginY ||
@@ -75,6 +86,11 @@ bool DetectGlobalStateChange()
            CurrentState.CameraUpwardZ != PreviousState.CameraUpwardZ ||
            CurrentState.CameraFovX != PreviousState.CameraFovX ||
            CurrentState.CameraFovY != PreviousState.CameraFovY;
+}
+
+void ForceRestartRender()
+{
+    CurrentState.Version += 1;
 }
 
 float CorrectInputRange(float input, float min, float max)
@@ -151,10 +167,10 @@ void UpdateDisplayTexture(const std::function<Spectrum(int x, int y)>& pixel_sou
         {
             for (int x = 0; x < CurrentState.ResolutionWidth; ++x)
             {
-                auto spectrum  = pixel_source(x, y);
-                uint32_t rr    = min(255, static_cast<int>(255.f * powf(spectrum[0], 1 / gamma)));
-                uint32_t gg    = min(255, static_cast<int>(255.f * powf(spectrum[1], 1 / gamma)));
-                uint32_t bb    = min(255, static_cast<int>(255.f * powf(spectrum[2], 1 / gamma)));
+                auto rgb       = SpectrumToRGB(ToneMap_Aces(pixel_source(x, y)));
+				uint32_t rr = rgb[0];
+				uint32_t gg = rgb[1];
+				uint32_t bb = rgb[2];
                 uint32_t pixel = (0xffu << 24) | (bb << 16) | (gg << 8) | rr;
 
                 data[y * mapped_resource.RowPitch / 4 + x] = pixel;
@@ -166,25 +182,22 @@ void UpdateDisplayTexture(const std::function<Spectrum(int x, int y)>& pixel_sou
 
 void RenderOnce(Canvas* canvas, const Camera* camera)
 {
+    static Sampler::Ptr sampler = CreateRandomSampler(rand());
+
     static bool initialized = false;
     static EmbreeScene scene{};
     if (!initialized)
     {
-        auto mesh = LoadMesh("d:/scene/bunny2/bunny2.obj");
-        scene.AddMesh(mesh, Transform::CreateScale(0.005));
-        // auto mesh = LoadMesh("d:/scene/vk/vokselia_spawn.obj");
-        // scene.AddMesh(mesh);
-        scene.CreateGlobalLight_Skybox({.5, .7, 1.});
-        // scene.CreateGlobalLight_Infinite({1, 1, 1});
-
+        CreateScene_Sphere(scene);
         scene.Commit();
 
-        initialized = true;
+        initialized       = true;
+        EditableMaterials = scene.GetEditMaterials();
     }
 
     if (canvas != nullptr && camera != nullptr)
     {
-        ExecuteRenderIncremental(*canvas, scene, *camera,
+        ExecuteRenderIncremental(*canvas, *sampler, scene, *camera,
                                  {CurrentState.ResolutionWidth, CurrentState.ResolutionHeight}, 1);
     }
 }
@@ -202,15 +215,17 @@ void UpdateImageControl()
 {
     ImGui::Begin("image");
 
-    static int resolution[2]{};
+    static int resolution[2]{CurrentState.ResolutionWidth, CurrentState.ResolutionHeight};
     ImGui::InputInt2("Resolution", resolution);
     if (ImGui::Button("Change Resolution"))
     {
         if (resolution[0] >= 100 && resolution[1] >= 100)
         {
             // TODO: support resolution change
-            // CurrentState.ResolutionWidth  = resolution[0];
-            // CurrentState.ResolutionHeight = resolution[1];
+            CurrentState.ResolutionWidth  = resolution[0];
+            CurrentState.ResolutionHeight = resolution[1];
+
+            InitializeDisplayTexture(true);
         }
     }
 
@@ -250,7 +265,7 @@ void UpdateCameraControl()
     constexpr int kKeyCode_S = 83;
     constexpr int kKeyCode_D = 68;
 
-    static float CameraMoveRatePerSec = 0.5f;
+    static float CameraMoveRatePerSec = 1.f;
     ImGui::SliderFloat("move rate", &CameraMoveRatePerSec, 0.f, 2.f);
 
     float camera_move_rate     = CameraMoveRatePerSec / ImGui::GetIO().Framerate;
@@ -290,7 +305,7 @@ void UpdateCameraControl()
     constexpr int kKeyCode_Comma      = 188;
     constexpr int kKeyCode_Period     = 190;
 
-    static float CameraRotateRatePerSec = 0.5f;
+    static float CameraRotateRatePerSec = 1.f;
     ImGui::SliderFloat("rotate rate", &CameraRotateRatePerSec, 0.f, 2.f);
 
     float camera_rotate_rate       = CameraRotateRatePerSec / ImGui::GetIO().Framerate;
@@ -349,6 +364,48 @@ void UpdateCameraControl()
 
     ImGui::End();
 }
+void UpdateMaterialEditor()
+{
+    ImGui::Begin("material edit");
+
+    bool scene_changed = false;
+    for (auto material : EditableMaterials)
+    {
+        if (ImGui::TreeNode(material->name_.c_str()))
+        {
+            if (ImGui::ColorEdit3("Kd", material->kd_.data.data()))
+            {
+                scene_changed = true;
+            }
+            if (ImGui::ColorEdit3("Ks", material->ks_.data.data()))
+            {
+                scene_changed = true;
+            }
+            if (ImGui::ColorEdit3("Tr", material->tr_.data.data()))
+            {
+                scene_changed = true;
+            }
+            if (ImGui::SliderFloat("roughness", &material->roughness_, 0.f, 1.f))
+            {
+                scene_changed = true;
+            }
+            if (ImGui::SliderFloat("eta", &material->eta_in_, 0.5f, 10.f))
+            {
+                scene_changed = true;
+            }
+
+            ImGui::TreePop();
+            ImGui::Separator();
+        }
+    }
+
+    if (scene_changed)
+    {
+        ForceRestartRender();
+    }
+
+    ImGui::End();
+}
 
 void UpdateRenderPreview()
 {
@@ -358,8 +415,17 @@ void UpdateRenderPreview()
 
     if (DetectGlobalStateChange())
     {
-        canvas->Clear();
         n = 0;
+
+        if (DetectGlobalResolutionChange())
+        {
+            canvas =
+                make_shared<Canvas>(CurrentState.ResolutionWidth, CurrentState.ResolutionHeight);
+        }
+        else
+        {
+            canvas->Clear();
+        }
     }
 
     auto camera = CreatePinholeCamera(CurrentCameraOrigin(), CurrentCameraForward(),
@@ -391,6 +457,7 @@ void ApplicationUpdate()
     UpdateStatusControl();
     UpdateImageControl();
     UpdateCameraControl();
+    UpdateMaterialEditor();
 
     // render preview
     UpdateRenderPreview();

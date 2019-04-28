@@ -46,9 +46,9 @@ namespace akane
         return Vec3f(cos(theta) * r, sin(theta) * r, sqrt(1 - u[1]));
     }
 
-    inline akFloat PdfCosineWeightedHemisphere(Vec3f v) noexcept
+    inline akFloat PdfCosineWeightedHemisphere(akFloat z) noexcept
     {
-		return v.Z() / kPI;
+		return z / kPI;
     }
 
 } // namespace akane

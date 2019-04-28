@@ -85,6 +85,7 @@ namespace akane
 
     void EmbreeScene::Commit()
     {
+        Scene::Commit();
         rtcCommitScene(scene_);
     }
 
@@ -126,7 +127,7 @@ namespace akane
             }
             if (isect.ns.Dot(ray.d) > 0)
             {
-                isect.ns = -isect.ns;
+                // isect.ns = -isect.ns;
             }
 
             // override uv
@@ -149,9 +150,12 @@ namespace akane
 
             isect.primitive = InstantiateTemporaryPrimitive(workspace, geom_id, prim_id);
 
-            isect.area_light = geoms_[geom_id]->area_light;
+            if (!geometry->area_lights.empty())
+            {
+                isect.area_light = geometry->area_lights.at(prim_id);
+            }
 
-            isect.material = geoms_[geom_id]->material;
+            isect.material = geometry->material;
 
             return true;
         }
@@ -304,8 +308,6 @@ namespace akane
             ParseMeshGeometry(*geometry, *geom_desc, transform);
 
             geometry->mesh_buffer = mesh_buffer;
-            geometry->area_light  = nullptr;
-            geometry->material    = nullptr;
 
             // allocate id for the geometry
             auto geom_id      = RegisterMeshGeometry(geometry);
@@ -317,13 +319,14 @@ namespace akane
                 const auto& material = *geom_desc->material;
                 if (material.emission.Max() > 1e-5)
                 {
-                    if (geometry->triangle_count > 1)
+                    auto triangle_count = geom_desc->triangle_indices.size();
+                    for (int i = 0; i < triangle_count; ++i)
                     {
-                        throw 0;
-                    }
+                        auto primitive = InstantiatePrimitive(geom_id, i);
+                        auto light     = CreateLight_Area(primitive, material.emission);
 
-                    auto primitive       = InstantiatePrimitive(geom_id, 0);
-                    geometry->area_light = CreateLight_Area(primitive, material.emission);
+                        geometry->area_lights.push_back(light);
+                    }
                 }
 
                 geometry->material = LoadMaterial(material);
@@ -333,60 +336,20 @@ namespace akane
 
     void EmbreeScene::AddGround(akFloat z, const Spectrum& albedo)
     {
-        auto mesh_buffer = Construct<EmbreeMeshBuffer>();
+        auto mesh      = std::make_shared<MeshDesc>();
+        mesh->vertices = {{-1e5, -1e5, z}, {-1e5, 1e5, z}, {1e5, 1e5, z}, {1e5, 1e-5, z}};
 
-        {
-            mesh_buffer->vertex_count = 4;
-            mesh_buffer->vertex_data  = std::make_unique<float[]>(13);
+        auto material  = std::make_shared<MaterialDesc>();
+        material->name = "_ak_ground";
+        material->kd   = albedo;
 
-            auto p = mesh_buffer->vertex_data.get();
-            p[0]   = -1e5;
-            p[1]   = -1e5;
-            p[2]   = z;
-            p[3]   = -1e5;
-            p[4]   = 1e5;
-            p[5]   = z;
-            p[6]   = 1e5;
-            p[7]   = 1e5;
-            p[8]   = z;
-            p[9]   = 1e5;
-            p[10]  = -1e5;
-            p[11]  = z;
-            p[12]  = 0;
+        auto geometry              = std::make_shared<GeometryDesc>();
+        geometry->name             = "_ak_ground";
+        geometry->triangle_indices = {{0, 2, 1}, {0, 3, 2}};
+        geometry->material         = material;
 
-            mesh_buffer->normal_count = 0;
-            mesh_buffer->normal_data  = nullptr;
-
-            mesh_buffer->uv_count = 0;
-            mesh_buffer->uv_data  = nullptr;
-        }
-
-        auto geometry         = Construct<EmbreeMeshGeometry>();
-        geometry->mesh_buffer = mesh_buffer;
-        {
-            geometry->triangle_count   = 2;
-            geometry->triangle_indices = std::make_unique<uint32_t[]>(7);
-
-            auto p = geometry->triangle_indices.get();
-            p[0]   = 0;
-            p[1]   = 1;
-            p[2]   = 2;
-            p[3]   = 0;
-            p[4]   = 2;
-            p[5]   = 3;
-            p[6]   = 0;
-
-            geometry->normal_indices = nullptr;
-            geometry->uv_indices     = nullptr;
-        }
-
-        RegisterMeshGeometry(geometry);
-
-        auto texture = CreateTexture_Solid({albedo});
-        auto mat     = CreateMaterial_Lambertian(texture);
-
-        geometry->material   = mat;
-        geometry->area_light = nullptr;
+		mesh->geomtries.push_back(geometry);
+		AddMesh(mesh);
     }
     void EmbreeScene::AddTriangleLight(const Point3f& v0, const Point3f& v1, const Point3f& v2,
                                        const Spectrum& albedo)
@@ -436,8 +399,8 @@ namespace akane
 
         auto primitive = InstantiatePrimitive(geometry->geom_id, 0);
 
-        geometry->material   = nullptr;
-        geometry->area_light = CreateLight_Area(primitive, albedo);
+        geometry->material    = nullptr;
+        geometry->area_lights = {CreateLight_Area(primitive, albedo)};
     }
 
     unsigned EmbreeScene::RegisterMeshGeometry(EmbreeMeshGeometry* geometry)

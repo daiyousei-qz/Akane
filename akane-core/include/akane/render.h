@@ -12,43 +12,43 @@ namespace akane
 {
     inline thread_local int GlobalThreadId = -1;
 
-    inline void ExecuteRenderIncremental(Canvas& canvas, const Scene& scene, const Camera& camera,
-                                         Point2i resolution, int sample_per_pixel)
+    inline void ExecuteRenderIncremental(Canvas& canvas, Sampler& sampler, const Scene& scene,
+                                         const Camera& camera, Point2i resolution,
+                                         int sample_per_pixel, bool render_normal = false)
     {
-		RenderingContext ctx;
+        RenderingContext ctx;
+        Integrator::Ptr integrator =
+            render_normal ? CreateDirectIntersectionIntegrator() : CreatePathTracingIntegrator();
 
-		//auto integrator = CreateDirectIntersectionIntegrator();
-		auto integrator = CreatePathTracingIntegrator();
-		auto sampler = CreateRandomSampler();
+        for (int y = 0; y < resolution.Y(); ++y)
+        {
+            for (int x = 0; x < resolution.X(); ++x)
+            {
+                Spectrum acc = kFloatZero;
+                for (int i = 0; i < sample_per_pixel; ++i)
+                {
+                    auto ray      = camera.SpawnRay(resolution, {x, y}, sampler.Get2D());
+                    auto radiance = integrator->Li(ctx, sampler, scene, ray);
 
-		for (int y = 0; y < resolution.Y(); ++y)
-		{
-			for (int x = 0; x < resolution.X(); ++x)
-			{
-				Spectrum acc = kFloatZero;
-				for (int i = 0; i < sample_per_pixel; ++i)
-				{
-					auto ray = camera.SpawnRay(resolution, { x, y }, sampler->Get2D());
-					auto radiance = integrator->Li(ctx, *sampler, scene, ray);
+                    acc += radiance;
+                    ctx.workspace.Clear();
+                }
 
-					acc += radiance;
-					ctx.workspace.Clear();
-				}
-
-				canvas.At(x, y) += acc;
-			}
-		}
+                canvas.At(x, y) += acc;
+            }
+        }
     }
 
     inline Canvas::SharedPtr ExecuteRenderingSingleThread(const Scene& scene, const Camera& camera,
-                                                          Point2i resolution, int sample_per_pixel)
+                                                          Point2i resolution, int sample_per_pixel,
+                                                          unsigned seed = 1234)
     {
         auto canvas = std::make_shared<Canvas>(resolution.X(), resolution.Y());
         RenderingContext ctx;
 
-        //auto integrator = CreateDirectIntersectionIntegrator();
+        // auto integrator = CreateDirectIntersectionIntegrator();
         auto integrator = CreatePathTracingIntegrator();
-        auto sampler = CreateRandomSampler();
+        auto sampler    = CreateRandomSampler(seed);
 
         for (int y = 0; y < resolution.Y(); ++y)
         {
@@ -83,12 +83,11 @@ namespace akane
     {
         std::atomic<int> next_thd_id = 0;
         auto execute_render          = [&](unsigned seed, bool first) {
-            srand(seed);
             GlobalThreadId = next_thd_id++;
 
             auto ssp =
                 sample_per_pixel / thread_count + (first ? sample_per_pixel % thread_count : 0);
-            return ExecuteRenderingSingleThread(scene, camera, resolution, ssp);
+            return ExecuteRenderingSingleThread(scene, camera, resolution, ssp, seed);
         };
 
         std::vector<std::future<Canvas::SharedPtr>> futures;

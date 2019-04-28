@@ -47,11 +47,55 @@ namespace akane
         return Sin2Theta(v) / Cos2Theta(v);
     }
 
+    // assume SameHemiSphere(wo, n)
+    inline Vec3f ReflectRay(const Vec3f& wo, const Vec3f& n) noexcept
+    {
+        auto h = wo.Dot(n);
+        return -wo + 2 * h * n;
+    }
+
+    // assume n = +-kBsdfNormal
+    inline Vec3f ReflectRayQuick(const Vec3f& wo) noexcept
+    {
+        return Vec3f{-wo.X(), -wo.Y(), wo.Z()};
+    }
+
+    // assume SameHemiSphere(wo, n)
+    // eta = etaI / etaT, i.e. inverse of refractive index
+    inline bool RefractRay(const Vec3f& wo, const Vec3f& n, akFloat eta, Vec3f& refracted) noexcept
+    {
+        akFloat cosThetaI  = n.Dot(wo);
+        akFloat sin2ThetaI = max(0.f, 1.f - cosThetaI * cosThetaI);
+        akFloat sin2ThetaT = eta * eta * sin2ThetaI;
+        if (sin2ThetaT > 1)
+        {
+            return false;
+        }
+
+        akFloat cosThetaT = sqrt(1.f - sin2ThetaT);
+
+        refracted = -eta * wo + (eta * cosThetaI - cosThetaT) * n;
+        return true;
+    }
+
+    // eta = etaI / etaT
+    inline constexpr akFloat Schlick(akFloat cos_theta, akFloat eta) noexcept
+    {
+        auto r0 = (eta - kFloatOne) / (eta + kFloatOne);
+        r0      = r0 * r0;
+
+        auto root  = 1 - cos_theta;
+        auto root2 = root * root;
+        return r0 + (1 - r0) * root2 * root;
+    }
+
     class BsdfType
     {
     public:
         enum FlagType
         {
+            None = 0,
+
             // major category: BRDF or BTDF
             Reflection   = 1,
             Transmission = 2,
@@ -62,10 +106,11 @@ namespace akane
             Specular = 16,
 
             // quick access
-            Any          = Reflection | Transmission | Diffuse | Glossy | Specular,
-            DiffuseRefl  = Reflection | Diffuse,
-            GlossyRefl   = Reflection | Glossy,
-            SpecularRefl = Reflection | Specular,
+            Any                  = Reflection | Transmission | Diffuse | Glossy | Specular,
+            DiffuseRefl          = Reflection | Diffuse,
+            GlossyRefl           = Reflection | Glossy,
+            SpecularRefl         = Reflection | Specular,
+            SpecularTransmission = Reflection | Transmission | Specular
         };
 
         constexpr BsdfType(FlagType flag) : value_(flag)
@@ -73,6 +118,11 @@ namespace akane
         }
         constexpr BsdfType(int flag) : BsdfType(static_cast<FlagType>(flag))
         {
+        }
+
+        constexpr BsdfType Also(BsdfType type) const noexcept
+        {
+            return BsdfType{value_ | type.value_};
         }
 
         constexpr bool Contain(BsdfType flag) const noexcept
@@ -90,7 +140,7 @@ namespace akane
         }
 
     private:
-        FlagType value_;
+        FlagType value_ = None;
     };
 
     // implementation interface for generic BSDF
@@ -98,6 +148,7 @@ namespace akane
     class Bsdf
     {
     public:
+        Bsdf() = default;
         Bsdf(BsdfType type) : type_(type)
         {
         }
@@ -118,8 +169,8 @@ namespace akane
 
         virtual akFloat Pdf(const Vec3f& wo, const Vec3f& wi) const noexcept = 0;
 
-    private:
-        BsdfType type_;
+    protected:
+        BsdfType type_ = BsdfType::None;
     };
 
 } // namespace akane

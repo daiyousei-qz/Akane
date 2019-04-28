@@ -13,22 +13,26 @@ namespace akane
 
         Spectrum Eval(const Vec3f& wo, const Vec3f& wi) const noexcept override
         {
-            return SameHemisphere(wo, wi) ? albedo_ / kPI : Spectrum{ kFloatZero };
+            return albedo_ / kPI;
         }
 
         Spectrum SampleAndEval(const Point2f& u, const Vec3f& wo, Vec3f& wi_out,
                                akFloat& pdf_out) const noexcept
         {
             Vec3f wi = SampleCosineWeightedHemisphere(u);
+            if (wo.Z() < 0)
+            {
+                wi.Z() = -wi.Z();
+            }
 
             wi_out  = wi;
-            pdf_out = PdfCosineWeightedHemisphere(wi);
+            pdf_out = PdfCosineWeightedHemisphere(abs(wi.Z()));
             return Eval(wo, wi);
         }
 
         akFloat Pdf(const Vec3f& wi, const Vec3f& wo) const noexcept
         {
-            return SameHemisphere(wo, wi) ? PdfCosineWeightedHemisphere(wi) : kFloatZero;
+            return SameHemisphere(wo, wi) ? PdfCosineWeightedHemisphere(abs(wi.Z())) : kFloatZero;
         }
 
     private:

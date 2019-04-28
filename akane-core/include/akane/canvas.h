@@ -40,12 +40,11 @@ namespace akane
             std::vector<uint8_t> graph;
             for (const auto& pixel : pixels_)
             {
+				auto color = ToneMap_Reinhard(pixel) * 255.f;
                 for (int i = 0; i < 3; ++i)
                 {
-                    auto x = std::min(
-                        255,
-                        static_cast<int>(255.f * powf(pixel[i], 1 / gamma)));
-                    graph.push_back(x);
+					auto x = std::min(255.f, color[i]);
+                    graph.push_back(static_cast<uint8_t>(x));
                 }
             }
 

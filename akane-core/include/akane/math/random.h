@@ -1,5 +1,6 @@
 #pragma once
 #include "akane/math/float_type.h"
+#include "akane/math/vector.h"
 #include <random>
 
 namespace akane
@@ -15,7 +16,7 @@ namespace akane
     public:
         RandomEngine()
         {
-            Seed(1);
+            Seed(13579);
         }
 
         void Seed(uint64_t value) noexcept
@@ -56,22 +57,30 @@ namespace akane
         uint64_t s[4]; // engine state
     };
 
-    class RandomSource
+    inline akFloat SampleUniformReal(RandomEngine& engine)
     {
-    public:
-        bool SampleBool(akFloat prob)
-        {
-            return UniformReal() < prob;
-        }
+        constexpr uint64_t mask = 0x7ffff;
+        constexpr akFloat unit  = 1 / static_cast<akFloat>(1 + mask);
 
-        // int UniformInt(int min = 0, int max = 1) { return 0; }
+        return static_cast<akFloat>(engine.Next() & mask) * unit;
+    }
 
-        akFloat UniformReal(akFloat min = kFloatZero, akFloat max = kFloatOne)
-        {
-            return static_cast<akFloat>(rand()) / (RAND_MAX + 1);
-        }
+    inline Point2f SampleUniformReal2D(RandomEngine& engine)
+    {
+        constexpr uint64_t width = 20;
+        constexpr uint64_t mask  = 0x7ffff;
+        constexpr akFloat unit   = 1 / static_cast<akFloat>(1 + mask);
 
-    private:
-        RandomEngine engine_;
-    };
+        auto entropy = engine.Next();
+        auto r1      = static_cast<akFloat>(entropy & mask) * unit;
+        auto r2      = static_cast<akFloat>((entropy >> width) & mask) * unit;
+
+        return {r1, r2};
+    }
+
+    inline akFloat SampleBool(RandomEngine& engine, akFloat prob)
+    {
+        return SampleUniformReal(engine) < prob;
+    }
+
 } // namespace akane

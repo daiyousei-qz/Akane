@@ -13,19 +13,10 @@ static Vec3f p2v(const akFloat* p)
 
 namespace akane
 {
-    MeshDesc::SharedPtr LoadMesh(string_view filename)
+    static MaterialDesc::SharedPtr
+    ParseMaterial(unordered_map<string, Image::SharedPtr>& texture_lookup,
+                  const tinyobj::material_t& mat, const path& dir)
     {
-        path file = filename;
-        path dir  = file.parent_path();
-
-        tinyobj::ObjReader reader{};
-        tinyobj::ObjReaderConfig config{};
-
-        config.mtl_search_path = dir.string();
-        auto success           = reader.ParseFromFile(file.string(), config);
-
-        vector<MaterialDesc::SharedPtr> material_vec;
-        unordered_map<string, Image::SharedPtr> texture_lookup;
         auto try_load_texture = [&](const string& name) -> Image::SharedPtr {
             if (name.empty())
             {
@@ -46,21 +37,47 @@ namespace akane
             }
         };
 
+        auto result = std::make_shared<MaterialDesc>();
+
+        result->name     = mat.name;
+        result->ka       = p2v(mat.ambient);
+        result->kd       = p2v(mat.diffuse);
+        result->ks       = p2v(mat.specular);
+        result->tr       = p2v(mat.transmittance);
+        result->emission = p2v(mat.emission);
+
+        result->ambient_texture  = try_load_texture(mat.ambient_texname);
+        result->diffuse_texture  = try_load_texture(mat.diffuse_texname);
+        result->specular_texture = try_load_texture(mat.specular_texname);
+
+        if (mat.roughness != 0)
+        {
+            result->roughness = mat.roughness;
+        }
+        else if (mat.shininess != 0)
+        {
+			result->roughness = pow(2 / (2 + mat.shininess), 1.f / 4.f);
+        }
+
+        return result;
+    }
+
+    MeshDesc::SharedPtr LoadMesh(string_view filename)
+    {
+        path file = filename;
+        path dir  = file.parent_path();
+
+        tinyobj::ObjReader reader{};
+        tinyobj::ObjReaderConfig config{};
+
+        config.mtl_search_path = dir.string();
+        auto success           = reader.ParseFromFile(file.string(), config);
+
+        vector<MaterialDesc::SharedPtr> material_vec;
+        unordered_map<string, Image::SharedPtr> texture_lookup;
         for (const auto& material : reader.GetMaterials())
         {
-            auto mat      = make_shared<MaterialDesc>();
-            mat->name     = material.name;
-            mat->ka       = p2v(material.ambient);
-            mat->kd       = p2v(material.diffuse);
-            mat->ks       = p2v(material.specular);
-            mat->tr       = p2v(material.transmittance);
-            mat->emission = p2v(material.emission);
-
-            mat->ambient_texture  = try_load_texture(material.ambient_texname);
-            mat->diffuse_texture  = try_load_texture(material.diffuse_texname);
-            mat->specular_texture = try_load_texture(material.specular_texname);
-
-            material_vec.push_back(mat);
+            material_vec.push_back(ParseMaterial(texture_lookup, material, dir));
         }
 
         auto mesh = make_shared<MeshDesc>();

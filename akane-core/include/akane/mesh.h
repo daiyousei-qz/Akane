@@ -15,16 +15,20 @@ namespace akane
 
         std::string name;
 
-        Vec3f ka; // ambient
-        Vec3f kd; // diffuse
-        Vec3f ks; // specular
-        Vec3f tr; // transmission
+        Vec3f ka = {}; // ambient
+        Vec3f kd = {}; // diffuse
+        Vec3f ks = {}; // specular
+        Vec3f tr = {}; // transmission
 
-        Vec3f emission;
+        Vec3f emission = {};
 
-        Image::SharedPtr ambient_texture;
-        Image::SharedPtr diffuse_texture;
-        Image::SharedPtr specular_texture;
+        Image::SharedPtr ambient_texture  = nullptr;
+        Image::SharedPtr diffuse_texture  = nullptr;
+        Image::SharedPtr specular_texture = nullptr;
+
+        // pbr
+        akFloat eta       = 10.f;
+        akFloat roughness = 0.f;
     };
 
     struct GeometryDesc
@@ -155,20 +159,22 @@ namespace akane
         {
             for (const auto& vertex : mesh->vertices)
             {
-				using std::min;
-				using std::max;
+                using std::max;
+                using std::min;
 
                 auto u = 0.5f + atan2(vertex.Y(), vertex.X()) / (2 * kPI);
                 auto v = 0.5f - asin(vertex.Z()) / kPI;
 
-				u = max(min(u, 1.f), 0.f);
-				v = max(min(v, 1.f), 0.f);
+                u = max(min(u, 1.f), 0.f);
+                v = max(min(v, 1.f), 0.f);
 
-				static auto vert = vertex;
-				vert = vertex;
-				static auto uu = u, vv = v;;
-				uu = u; vv = v;
-				mesh->uv.push_back({u, v});
+                static auto vert = vertex;
+                vert             = vertex;
+                static auto uu = u, vv = v;
+                ;
+                uu = u;
+                vv = v;
+                mesh->uv.push_back({u, v});
             }
 
             geometry->uv_indices = geometry->triangle_indices;

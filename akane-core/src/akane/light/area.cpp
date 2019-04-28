@@ -23,6 +23,6 @@ namespace akane
     }
     akFloat AreaLight::Power() const
     {
-        return albedo_.LengthSq() * primitive_->Area();
+        return albedo_.Length() * primitive_->Area();
     }
 } // namespace akane

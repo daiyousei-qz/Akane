@@ -4,7 +4,6 @@
 #include "akane/light.h"
 #include "akane/common/arena.h"
 #include "akane/math/transform.h"
-#include "akane/scene/scene_base.h"
 #include "akane/primitive/embree_triangle.h"
 #include "rtcore.h"
 
@@ -60,15 +59,21 @@ namespace akane
         std::unique_ptr<uint32_t[]> normal_indices;   // layouts: [x, y, z]...
         std::unique_ptr<uint32_t[]> uv_indices;       // layouts: [x, y, z]...
 
-        const AreaLight* area_light;
+        std::vector<const AreaLight*> area_lights;
         const Material* material;
 
         static constexpr size_t kTriangleIndexStride = 3;
         static constexpr size_t kNormalIndexStride   = 3;
         static constexpr size_t kUVIndexStride       = 3;
 
-		auto GetAreaLight() const noexcept { return area_light; }
-		auto GetMaterial() const noexcept { return material; }
+        auto GetAreaLight(int prim_id) const noexcept
+        {
+            return area_lights[prim_id];
+        }
+        auto GetMaterial() const noexcept
+        {
+            return material;
+        }
 
         std::tuple<Point3f, Point3f, Point3f> GetTriangle(size_t index) const noexcept
         {
@@ -101,17 +106,17 @@ namespace akane
             AKANE_ASSERT(uv_indices != nullptr && index < triangle_count);
 
             auto p = uv_indices.get() + index * kUVIndexStride;
-            return {mesh_buffer->GetUV(p[0]), mesh_buffer->GetUV(p[1]), mesh_buffer->GetUV(p[2]) };
+            return {mesh_buffer->GetUV(p[0]), mesh_buffer->GetUV(p[1]), mesh_buffer->GetUV(p[2])};
         }
     };
 
-    class EmbreeScene : public SceneBase
+    class EmbreeScene : public Scene
     {
     public:
         EmbreeScene();
         ~EmbreeScene();
 
-        void Commit();
+		void Commit() override;
 
         bool Intersect(const Ray& ray, Workspace& workspace,
                        IntersectionInfo& isect) const override;

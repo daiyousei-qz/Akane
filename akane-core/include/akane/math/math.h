@@ -13,6 +13,4 @@ namespace akane
     using std::sin;
     using std::cos;
     using std::sqrt;
-
-
 } // namespace akane

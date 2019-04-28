@@ -73,6 +73,21 @@ namespace akane
             return data.end();
         }
 
+		constexpr T& X() noexcept
+		{
+			static_assert(N >= 1);
+			return data[0];
+		}
+		constexpr T& Y() noexcept
+		{
+			static_assert(N >= 2);
+			return data[1];
+		}
+		constexpr T& Z() noexcept
+		{
+			static_assert(N >= 3);
+			return data[2];
+		}
 		constexpr T X() const noexcept
 		{
 			static_assert(N >= 1);

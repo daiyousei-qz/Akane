@@ -11,7 +11,7 @@ namespace akane
     public:
         using Ptr = std::unique_ptr<Texture>;
 
-        virtual Spectrum Value(const IntersectionInfo& isect) const noexcept = 0;
+        virtual Spectrum Eval(const IntersectionInfo& isect) const noexcept = 0;
     };
 
     class SolidTexture : public Texture
@@ -21,7 +21,7 @@ namespace akane
         {
         }
 
-        Spectrum Value(const IntersectionInfo& isect) const noexcept override
+        Spectrum Eval(const IntersectionInfo& isect) const noexcept override
         {
             return albedo_;
         }
@@ -37,7 +37,7 @@ namespace akane
         {
         }
 
-        Spectrum Value(const IntersectionInfo& isect) const noexcept override
+        Spectrum Eval(const IntersectionInfo& isect) const noexcept override
         {
             size_t x   = isect.uv.X() * (img_->Width() - 1);
             size_t y   = (1-isect.uv.Y()) * (img_->Height() - 1);
@@ -59,18 +59,18 @@ namespace akane
         {
         }
 
-        Spectrum Value(const IntersectionInfo& isect) const noexcept override
+        Spectrum Eval(const IntersectionInfo& isect) const noexcept override
         {
             auto p      = 3.f * isect.point;
             auto choice = sin(p.X()) * sin(p.Y()) * sin(p.Z());
 
             if (choice > 0)
             {
-                return t0_->Value(isect);
+                return t0_->Eval(isect);
             }
             else
             {
-                return t1_->Value(isect);
+                return t1_->Eval(isect);
             }
         }
 

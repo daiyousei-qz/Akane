@@ -11,4 +11,5 @@ namespace akane
     constexpr akFloat kFloatOne  = 1.f;
 
     constexpr akFloat kPI = 3.141592f;
+	constexpr akFloat kInvPI = 1 / kPI;
 } // namespace akane

@@ -7,9 +7,9 @@
 
 namespace akane
 {
-	class Primitive;
-	class Material;
-	class AreaLight;
+    class Primitive;
+    class Material;
+    class AreaLight;
 
     struct Ray
     {
@@ -19,36 +19,36 @@ namespace akane
 
     struct RenderingContext
     {
-         Workspace workspace;
+        Workspace workspace;
     };
 
-	struct IntersectionInfo
-	{
-		// distance that ray travels to make the hit
-		akFloat t;
+    struct IntersectionInfo
+    {
+        // distance that ray travels to make the hit
+        akFloat t;
 
-		// point where intersection happens
-		Point3f point;
+        // point where intersection happens
+        Point3f point;
 
-		// geometric normal at the hit point
-		Vec3f ng;
+        // geometric normal at the hit point
+        Vec3f ng;
 
-		// scattering normal at the hit point
+        // scattering normal at the hit point
         Vec3f ns;
 
-		// uv coordianate at point for texture mapping
-		Point2f uv;
+        // uv coordianate at point for texture mapping
+        Point2f uv;
 
-		// triangle index for embree scene
-		unsigned index;
+        // triangle index for embree scene
+        unsigned index = 0;
 
-		// primitive that ray hits
-		const Primitive* primitive;
+        // primitive that ray hits
+        const Primitive* primitive = nullptr;
 
-		// area light at the hit point
-		const AreaLight* area_light;
+        // area light at the hit point
+        const AreaLight* area_light = nullptr;
 
-		// material at the hit point
-		const Material* material;
-	};
+        // material at the hit point
+        const Material* material = nullptr;
+    };
 } // namespace akane
