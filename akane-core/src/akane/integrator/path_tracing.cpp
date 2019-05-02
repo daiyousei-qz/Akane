@@ -1,10 +1,10 @@
 #include "akane/integrator.h"
 #include "akane/material.h"
 #include "akane/math/coordinate.h"
+#include "fmt/format.h"
 
 using namespace std;
 
-#pragma optimize("", off)
 namespace akane
 {
     static constexpr int kMinBounce = 3;
@@ -105,22 +105,25 @@ namespace akane
                 Vec3f wi;
                 akFloat bsdf_pdf;
                 auto f = bsdf.SampleAndEval(sampler.Get2D(), wo, wi, bsdf_pdf);
+				
+				if (bsdf_pdf != 0)
+				{
+					auto shadow_ray = Ray{ isect.point, bsdf_coord.LocalToWorld(wi) };
 
-                auto shadow_ray = Ray{isect.point, bsdf_coord.LocalToWorld(wi)};
+					IntersectionInfo isect2;
+					if (scene.Intersect(shadow_ray, ctx.workspace, isect2))
+					{
+						if (isect2.area_light != nullptr)
+						{
+							// TODO: here it is assumed that area light is uniformly sampled
+							auto light_pdf =
+								scene.PdfLight(isect2.area_light) / isect2.primitive->Area();
+							auto ld = isect2.area_light->Eval(shadow_ray) / bsdf_pdf;
 
-                IntersectionInfo isect2;
-                if (scene.Intersect(shadow_ray, ctx.workspace, isect2))
-                {
-                    if (isect2.area_light != nullptr)
-                    {
-                        // TODO: here it is assumed that area light is uniformly sampled
-                        auto light_pdf =
-                            scene.PdfLight(isect2.area_light) / isect2.primitive->Area();
-                        auto ld = isect2.area_light->Eval(shadow_ray) / bsdf_pdf;
-
-                        total_ld += PowerHeuristic(bsdf_pdf, light_pdf) * f * ld * AbsCosTheta(wi);
-                    }
-                }
+							total_ld += PowerHeuristic(bsdf_pdf, light_pdf) * f * ld * AbsCosTheta(wi);
+						}
+					}
+				}
             }
 
             return total_ld;
@@ -187,11 +190,10 @@ namespace akane
                 Vec3f wi;
                 akFloat pdf;
                 auto f = bsdf->SampleAndEval(sampler.Get2D(), bsdf_wo, wi, pdf);
-
-                if (pdf == kFloatZero)
-                {
-                    break;
-                }
+				if(pdf == 0)
+				{
+					break;
+				}
 
                 contrib *= f * AbsCosTheta(wi) / pdf;
                 ray = Ray{isect.point, bsdf_coord.LocalToWorld(wi)};
@@ -201,7 +203,7 @@ namespace akane
                 {
                     auto p = contrib.Max();
 
-                    if (p < 1)
+					if (p < 1)
                     {
                         if (sampler.Get1D() > p)
                         {
@@ -213,6 +215,7 @@ namespace akane
                 }
             }
 
+			AKANE_CHECK(!InvalidSpectrum(result));
             return result;
         }
 
@@ -224,4 +227,3 @@ namespace akane
         return make_unique<PathTracingIntegrator>();
     }
 } // namespace akane
-#pragma optimize("", on)

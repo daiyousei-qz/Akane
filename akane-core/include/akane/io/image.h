@@ -5,35 +5,59 @@
 
 namespace akane
 {
-    struct RGBPixel
-    {
-        uint8_t r;
-        uint8_t g;
-        uint8_t b;
-    };
-
-    class Image
+    template <typename T> class BasicImage
     {
     public:
-        using SharedPtr = std::shared_ptr<Image>;
+        using SharedPtr = std::shared_ptr<BasicImage>;
 
-		auto Width() const noexcept { return width_; }
-		auto Height() const noexcept { return height_; }
-		auto Channel() const noexcept { return 3; }
-
-        RGBPixel At(size_t x, size_t y) const noexcept
+        BasicImage() : BasicImage(0, 0, 3)
         {
-            auto index = y * width_ * stride_ + x * stride_;
-            return RGBPixel{data_[index + 0], data_[index + 1], data_[index + 2]};
+        }
+        BasicImage(int width, int height, int channel = 3)
+            : channel_(channel), width_(width), height_(height)
+        {
+            data_.resize(width * height * channel, 0);
         }
 
-		static Image::SharedPtr LoadImage(const std::string& filename);
+        int Width() const noexcept
+        {
+            return width_;
+        }
+        int Height() const noexcept
+        {
+            return height_;
+        }
+        int Channel() const noexcept
+        {
+            return channel_;
+        }
+
+        T At(int x, int y, int channel) const noexcept
+        {
+            return data_[y * width_ * channel_ + x * channel_ + channel];
+        }
+        T& MutableAt(int x, int y, int channel) noexcept
+        {
+            return data_[y * width_ * channel_ + x * channel_ + channel];
+        }
+        void Clear(T x = {})
+        {
+            std::fill(std::begin(data_), std::end(data_), x);
+        }
 
     private:
-        size_t stride_; // pixel stride
+        friend BasicImage::SharedPtr LoadImage(const std::string& filename);
 
-        size_t width_;
-        size_t height_;
-        std::vector<uint8_t> data_;
+        int width_;
+        int height_;
+        int channel_;
+
+        std::vector<T> data_;
     };
+
+    using Image  = BasicImage<float>;
+    using ImageD = BasicImage<double>;
+
+    Image::SharedPtr LoadImage(const std::string& filename);
+
 } // namespace akane

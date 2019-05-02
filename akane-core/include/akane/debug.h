@@ -53,7 +53,7 @@ namespace akane
         AddSphere(scene, {0, 0, 1}, 1, mat0);
 
         scene.AddGround(0, {.7f, .5f, .4f});
-        scene.AddTriangleLight({-1, -1, 6}, {-1, 1, 6}, {1, 1, 6}, {4, 4, 4});
+        scene.AddTriangleLight({-2, -2, 10}, {-2, 2, 10}, {2, 2, 10}, {1, 1, 1});
         scene.CreateGlobalLight_Skybox({.5, .7, 1.});
 
         return CreatePinholeCamera({-5, 0, 1}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
@@ -109,7 +109,12 @@ namespace akane
 		auto mesh = LoadMesh("d:/scene/livingroom/living_room.obj");
 		scene.AddMesh(mesh, Transform::CreateRotateX(-kPI / 2).RotateZ(kPI));
 		
-		//return CreatePinholeCamera({ -1.92, 5.43, 1 }, { 0.60, -0.79, 0 }, { 0, 0, 1 }, { .5f, .5f });
-		return CreatePinholeCamera({ -2.243, 5.534, 1 }, { 0.633, -0.774, 0 }, { 0, 0, 1 }, { .5f, .5f });
+		return CreatePinholeCamera({ -1.92, 5.43, 1 }, { 0.60, -0.79, 0 }, { 0, 0, 1 }, { .5f, .5f });
+		//return CreatePinholeCamera({ -2.243, 5.534, 1 }, { 0.633, -0.774, 0 }, { 0, 0, 1 }, { .5f, .5f });
+	}
+
+	inline Camera::Ptr CreateScene_Default(EmbreeScene& scene)
+	{
+		return CreateScene_LivingRoom(scene);
 	}
 } // namespace akane

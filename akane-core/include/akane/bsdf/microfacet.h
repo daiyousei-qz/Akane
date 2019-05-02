@@ -84,7 +84,7 @@ namespace akane
 
         akFloat Pdf(const Vec3f& wh) const noexcept
         {
-            return D(wh) * CosTheta(wh);
+            return D(wh) * AbsCosTheta(wh);
         }
 
     private:

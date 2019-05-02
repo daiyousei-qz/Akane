@@ -5,7 +5,7 @@
 #include "akane/common/arena.h"
 #include "akane/math/transform.h"
 #include "akane/primitive/embree_triangle.h"
-#include "rtcore.h"
+#include "embree3/rtcore.h"
 
 namespace akane
 {

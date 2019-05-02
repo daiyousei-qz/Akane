@@ -13,8 +13,8 @@ namespace akane
             leftward_ = upward.Cross(forward_).Normalized();
             upward_   = forward_.Cross(leftward_).Normalized();
 
-            leftward_ *= tan(fov.X() * kPI / 2.f);
-            upward_ *= tan(fov.Y() * kPI / 2.f);
+            leftward_ *= tanf(fov.X() * kPI / 2.f);
+            upward_ *= tanf(fov.Y() * kPI / 2.f);
         }
 
         Ray SpawnRay(Point2i resolution, Point2i pixel, Point2f sample) const

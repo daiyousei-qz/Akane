@@ -1,10 +1,8 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.10)
 
 file(GLOB_RECURSE AKANE_GUI_SOURCES ./src/*.cpp ./include/external/imgui/*.cpp)
 
-add_executable(akane-gui WIN32)
-target_sources(akane-gui 
-	PRIVATE ${AKANE_GUI_SOURCES})
+add_executable(akane-gui WIN32 ${AKANE_GUI_SOURCES})
 
 target_include_directories(akane-gui
 	PRIVATE ./include)

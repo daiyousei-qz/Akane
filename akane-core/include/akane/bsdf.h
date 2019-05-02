@@ -12,7 +12,7 @@ namespace akane
 
     inline bool SameHemisphere(const Vec3f& wo, const Vec3f& wi) noexcept
     {
-        return wo.Z() * wi.Z() >= 0;
+        return wo.Z() * wi.Z() > 0;
     }
 
     inline akFloat CosTheta(const Vec3f& v) noexcept

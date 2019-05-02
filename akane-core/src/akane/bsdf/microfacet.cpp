@@ -44,14 +44,13 @@ namespace akane
 		auto G = microfacet_->G(wo, wi);
 
 		auto f = (D * F * G) / (4 * CosTheta(wo) * CosTheta(wi));
-
         return albedo_ * f;
     }
 
     Spectrum MicrofacetReflection::SampleAndEval(const Point2f& u, const Vec3f& wo, Vec3f& wi_out,
                                                  akFloat& pdf_out) const noexcept
     {
-        if (wo.Z() < 0)
+        if (wo.Z() <= 0)
         {
             pdf_out = 0.f;
             return Spectrum{kFloatZero};
@@ -59,7 +58,7 @@ namespace akane
 
         auto wh = microfacet_->SampleWh(u);
         auto wi = ReflectRay(wo, wh);
-        if (wi.Z() < 0)
+        if (wi.Z() <= 0)
         {
             pdf_out = 0.f;
             return kBlackSpectrum;
@@ -70,10 +69,10 @@ namespace akane
         auto G = microfacet_->G(wo, wi);
 
         auto f   = (D * F * G) / (4 * CosTheta(wo) * CosTheta(wi));
-        auto pdf = microfacet_->Pdf(wh) / (4 * wh.Dot(wi));
+        auto pdf = microfacet_->Pdf(wh) / (4 * wh.Dot(wo));
 
-        wi_out  = wi;
-        pdf_out = pdf;
+		wi_out = wi;
+		pdf_out = pdf;
         return albedo_ * f;
     }
 
@@ -85,6 +84,8 @@ namespace akane
         }
 
         auto wh = (wo + wi).Normalized();
-        return microfacet_->Pdf(wh) / (4 * wh.Dot(wi));
+        auto pdf = microfacet_->Pdf(wh) / (4 * wh.Dot(wo));
+
+		return pdf;
     }
 } // namespace akane

@@ -39,12 +39,10 @@ namespace akane
 
         Spectrum Eval(const IntersectionInfo& isect) const noexcept override
         {
-            size_t x   = isect.uv.X() * (img_->Width() - 1);
-            size_t y   = (1-isect.uv.Y()) * (img_->Height() - 1);
-            auto pixel = img_->At(x, y);
+            size_t x = isect.uv.X() * (img_->Width() - 1);
+            size_t y = (1 - isect.uv.Y()) * (img_->Height() - 1);
 
-            auto f = 1.f / 255.f;
-            return albedo_ * Spectrum{pixel.r * f, pixel.g * f, pixel.b * f};
+            return albedo_ * Spectrum{img_->At(x, y, 0), img_->At(x, y, 1), img_->At(x, y, 2)};
         }
 
     private:

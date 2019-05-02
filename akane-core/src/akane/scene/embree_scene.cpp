@@ -263,7 +263,7 @@ namespace akane
         // copy normal indices if presented
         if (!geom_desc.normal_indices.empty())
         {
-            AKANE_REQUIRE(geom_desc.normal_indices.size() == triangle_count);
+            //AKANE_REQUIRE(geom_desc.normal_indices.size() == triangle_count);
 
             geometry.normal_indices = std::make_unique<uint32_t[]>(3 * triangle_count + 1);
 
@@ -281,7 +281,7 @@ namespace akane
         // copy uv indices if presented
         if (!geom_desc.uv_indices.empty())
         {
-            AKANE_REQUIRE(geom_desc.uv_indices.size() == triangle_count);
+            //AKANE_REQUIRE(geom_desc.uv_indices.size() == triangle_count);
 
             geometry.uv_indices = std::make_unique<uint32_t[]>(3 * triangle_count + 1);
 

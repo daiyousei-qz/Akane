@@ -4,9 +4,8 @@
 #include "akane/scene/embree_scene.h"
 #include "akane/render.h"
 #include "akane/debug.h"
-#include <functional>
 
-#include <d3d11.h>
+#include "helper.h"
 
 using namespace std;
 using namespace akane;
@@ -93,93 +92,6 @@ void ForceRestartRender()
     CurrentState.Version += 1;
 }
 
-float CorrectInputRange(float input, float min, float max)
-{
-    if (input < min)
-        return min;
-    if (input > max)
-        return max;
-
-    return input;
-}
-
-extern ID3D11Device* g_pd3dDevice;
-extern ID3D11DeviceContext* g_pd3dDeviceContext;
-extern IDXGISwapChain* g_pSwapChain;
-extern ID3D11RenderTargetView* g_mainRenderTargetView;
-
-static ID3D11ShaderResourceView* texSRV = nullptr;
-static ID3D11Texture2D* tex             = nullptr;
-
-void InitializeDisplayTexture(bool override = false)
-{
-    if (!override && tex != nullptr)
-    {
-        return;
-    }
-    if (texSRV != nullptr)
-    {
-        texSRV->Release();
-        texSRV = nullptr;
-    }
-    if (tex != nullptr)
-    {
-        tex->Release();
-        tex = nullptr;
-    }
-
-    D3D11_TEXTURE2D_DESC desc = {};
-    desc.Width                = CurrentState.ResolutionWidth;
-    desc.Height               = CurrentState.ResolutionHeight;
-    desc.MipLevels            = 1;
-    desc.ArraySize            = 1;
-    desc.Format               = DXGI_FORMAT_R8G8B8A8_UNORM;
-    desc.SampleDesc.Count     = 1;
-    desc.Usage                = D3D11_USAGE_DYNAMIC;
-    desc.BindFlags            = D3D11_BIND_SHADER_RESOURCE;
-    desc.CPUAccessFlags       = D3D10_CPU_ACCESS_WRITE;
-
-    HRESULT hr = g_pd3dDevice->CreateTexture2D(&desc, nullptr, &tex);
-
-    if (SUCCEEDED(hr))
-    {
-        D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
-        SRVDesc.Format                          = DXGI_FORMAT_R8G8B8A8_UNORM;
-        SRVDesc.ViewDimension                   = D3D11_SRV_DIMENSION_TEXTURE2D;
-        SRVDesc.Texture2D.MipLevels             = 1;
-
-        hr = g_pd3dDevice->CreateShaderResourceView(tex, &SRVDesc, &texSRV);
-    }
-}
-
-void UpdateDisplayTexture(const std::function<Spectrum(int x, int y)>& pixel_source,
-                          float gamma = 2.f)
-{
-    D3D11_MAPPED_SUBRESOURCE mapped_resource;
-    ZeroMemory(&mapped_resource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-    HRESULT hr = g_pd3dDeviceContext->Map(tex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource);
-
-    if (SUCCEEDED(hr))
-    {
-        auto data = reinterpret_cast<uint32_t*>(mapped_resource.pData);
-
-        for (int y = 0; y < CurrentState.ResolutionHeight; ++y)
-        {
-            for (int x = 0; x < CurrentState.ResolutionWidth; ++x)
-            {
-                auto rgb       = SpectrumToRGB(ToneMap_Aces(pixel_source(x, y)));
-				uint32_t rr = rgb[0];
-				uint32_t gg = rgb[1];
-				uint32_t bb = rgb[2];
-                uint32_t pixel = (0xffu << 24) | (bb << 16) | (gg << 8) | rr;
-
-                data[y * mapped_resource.RowPitch / 4 + x] = pixel;
-            }
-        }
-        g_pd3dDeviceContext->Unmap(tex, 0);
-    }
-}
-
 void RenderOnce(Canvas* canvas, const Camera* camera)
 {
     static Sampler::Ptr sampler = CreateRandomSampler(rand());
@@ -188,7 +100,7 @@ void RenderOnce(Canvas* canvas, const Camera* camera)
     static EmbreeScene scene{};
     if (!initialized)
     {
-        CreateScene_Sphere(scene);
+        CreateScene_Default(scene);
         scene.Commit();
 
         initialized       = true;
@@ -225,7 +137,7 @@ void UpdateImageControl()
             CurrentState.ResolutionWidth  = resolution[0];
             CurrentState.ResolutionHeight = resolution[1];
 
-            InitializeDisplayTexture(true);
+            InitializeDisplayTexture(resolution[0], resolution[1], true);
         }
     }
 
@@ -250,12 +162,12 @@ void UpdateCameraControl()
     ImGui::SliderFloat("Fov X", &CurrentState.CameraFovX, 0.1f, 0.8f);
     if (ImGui::InputFloat("Fov X input", &CurrentState.CameraFovX, 0.1f, 0.8f))
     {
-        CurrentState.CameraFovX = CorrectInputRange(CurrentState.CameraFovX, 0.1f, 0.8f);
+        CurrentState.CameraFovX = clamp(CurrentState.CameraFovX, 0.1f, 0.8f);
     }
     ImGui::SliderFloat("Fov Y", &CurrentState.CameraFovY, 0.1f, 0.8f);
     if (ImGui::InputFloat("Fov Y input", &CurrentState.CameraFovY, 0.1f, 0.8f))
     {
-        CurrentState.CameraFovY = CorrectInputRange(CurrentState.CameraFovY, 0.1f, 0.8f);
+        CurrentState.CameraFovY = clamp(CurrentState.CameraFovY, 0.1f, 0.8f);
     }
 
     constexpr int kKeyCode_Q = 81;
@@ -434,33 +346,100 @@ void UpdateRenderPreview()
     RenderOnce(canvas.get(), camera.get());
     n += 1;
 
-    UpdateDisplayTexture([&](int x, int y) { return canvas->At(x, y) / static_cast<akFloat>(n); });
+    UpdateDisplayTexture([&](int x, int y) {
+        return SpectrumToRGB(ToneMap_Aces(canvas->GetSpectrum(x, y, 1.f / n)));
+    });
 
-    auto list = ImGui::GetBackgroundDrawList();
-    list->AddImage(texSRV, {0, 0},
-                   {DisplayScale * CurrentState.ResolutionWidth,
-                    DisplayScale * CurrentState.ResolutionHeight});
+    ImGui::Image(RetriveDisplayTexture(), {DisplayScale * CurrentState.ResolutionWidth,
+                                           DisplayScale * CurrentState.ResolutionHeight});
 }
 
 void ApplicationInit()
 {
-    InitializeDisplayTexture(false);
+    InitializeDisplayTexture(CurrentState.ResolutionWidth, CurrentState.ResolutionHeight, false);
     // RenderOnce(nullptr, nullptr);
 }
 
 void ApplicationUpdate()
 {
-    // backup state
-    PreviousState = CurrentState;
+    if (false)
+    {
+        static Canvas::SharedPtr canvas = nullptr;
 
-    // update window
-    UpdateStatusControl();
-    UpdateImageControl();
-    UpdateCameraControl();
-    UpdateMaterialEditor();
+        if (canvas == nullptr)
+        {
+            auto file = fopen("d:/test2.raw.txt", "rb");
 
-    // render preview
-    UpdateRenderPreview();
+            int width  = 0;
+            int height = 0;
+            fscanf(file, "%d %d", &width, &height);
+
+            canvas = std::make_shared<Canvas>(width, height);
+            for (int y = 0; y < height; ++y)
+            {
+                for (int x = 0; x < width; ++x)
+                {
+                    float r, g, b;
+                    fscanf(file, "%f %f %f", &r, &g, &b);
+					canvas->Append(r, g, b, x, y);
+                }
+            }
+
+            InitializeDisplayTexture(width, height, true);
+        }
+
+        static float gamma                                          = 1.f;
+        static char tone_mapping_name[100]                          = "ACES";
+        static std::function<Spectrum(const Spectrum&)> tone_mapper = ToneMap_Aces;
+        ImGui::Begin("raw edit");
+
+        if (ImGui::BeginCombo("tone mapper", tone_mapping_name))
+        {
+            if (ImGui::Selectable("ACES", true))
+            {
+                strcpy(tone_mapping_name, "ACES");
+                tone_mapper = ToneMap_Aces;
+            }
+            if (ImGui::Selectable("Reinhard"))
+            {
+                strcpy(tone_mapping_name, "Reinhard");
+                tone_mapper = ToneMap_Reinhard;
+            }
+            if (ImGui::Selectable("None"))
+            {
+                strcpy(tone_mapping_name, "None");
+                tone_mapper = [](const Spectrum& s) { return s; };
+            }
+
+            ImGui::EndCombo();
+        }
+
+        ImGui::SliderFloat("gamma", &gamma, 0.1f, 4.f);
+
+        ImGui::End();
+
+        UpdateDisplayTexture([&](int x, int y) {
+            auto spectrum = canvas->GetSpectrum(x, y, 1.);
+            return SpectrumToRGB(GammaCorrect(tone_mapper(spectrum), gamma));
+        });
+
+        ImGui::Image(RetriveDisplayTexture(),
+                     {1.f * CurrentState.ResolutionWidth, 1.f * CurrentState.ResolutionHeight});
+    }
+    else
+    {
+        // backup state
+        PreviousState = CurrentState;
+
+        // update window
+        UpdateStatusControl();
+        UpdateImageControl();
+        UpdateCameraControl();
+        UpdateMaterialEditor();
+
+        // render preview
+        UpdateRenderPreview();
+    }
 }
 
 ImVec4 ApplicationRender()

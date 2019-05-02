@@ -1,8 +1,6 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.10)
 
-add_executable(akane-shell)
-target_sources(akane-shell 
-	PRIVATE ./src/main.cpp)
+add_executable(akane-shell ./src/main.cpp)
 
 target_link_libraries(akane-shell
-	PRIVATE akane-core)
+	PRIVATE akane-core external::json external::spdlog external::fmtlib)

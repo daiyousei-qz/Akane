@@ -5,16 +5,16 @@
 #include "akane/sampler.h"
 #include "akane/integrator.h"
 #include "akane/scene.h"
+#include "fmt/format.h"
 #include <vector>
+#include <functional>
 #include <future>
 
 namespace akane
 {
-    inline thread_local int GlobalThreadId = -1;
-
     inline void ExecuteRenderIncremental(Canvas& canvas, Sampler& sampler, const Scene& scene,
                                          const Camera& camera, Point2i resolution,
-                                         int sample_per_pixel, bool render_normal = false)
+                                         int sample_per_pixel, bool render_normal = true)
     {
         RenderingContext ctx;
         Integrator::Ptr integrator =
@@ -34,84 +34,130 @@ namespace akane
                     ctx.workspace.Clear();
                 }
 
-                canvas.At(x, y) += acc;
+                canvas.Append(acc[0], acc[1], acc[2], x, y);
             }
         }
     }
 
-    inline Canvas::SharedPtr ExecuteRenderingSingleThread(const Scene& scene, const Camera& camera,
-                                                          Point2i resolution, int sample_per_pixel,
-                                                          unsigned seed = 1234)
+    struct RenderResult
     {
-        auto canvas = std::make_shared<Canvas>(resolution.X(), resolution.Y());
+        int ssp                  = 0;
+        Canvas::SharedPtr canvas = nullptr;
+    };
+
+    inline RenderResult
+    ExecuteRenderingSingleThread(const Scene& scene, const Camera& camera, Point2i resolution,
+                                 int sample_per_pixel, int thread_id, unsigned seed,
+                                 std::function<bool()>* activity_query,
+                                 std::function<void(int, const RenderResult&)>* checkpoint_handler)
+    {
+        RenderResult result{};
+        result.canvas = std::make_shared<Canvas>(resolution.X(), resolution.Y());
+
         RenderingContext ctx;
+        auto working_canvas = std::make_shared<Canvas>(resolution.X(), resolution.Y());
 
         // auto integrator = CreateDirectIntersectionIntegrator();
         auto integrator = CreatePathTracingIntegrator();
         auto sampler    = CreateRandomSampler(seed);
 
-        for (int y = 0; y < resolution.Y(); ++y)
-        {
-            for (int x = 0; x < resolution.X(); ++x)
-            {
-                Spectrum acc = kFloatZero;
-                for (int i = 0; i < sample_per_pixel; ++i)
-                {
-                    auto ray      = camera.SpawnRay(resolution, {x, y}, sampler->Get2D());
-                    auto radiance = integrator->Li(ctx, *sampler, scene, ray);
+        int ssp_per_batch =
+            static_cast<int>(ceil(sample_per_pixel / min(sample_per_pixel * 1.f, 100.f)));
 
-                    acc += radiance;
-                    ctx.workspace.Clear();
+        int progress = 0;
+        for (int batch = 0; batch < 100; ++batch)
+        {
+            auto ssp_this_batch = min(ssp_per_batch, sample_per_pixel - result.ssp);
+            if (ssp_this_batch <= 0)
+            {
+                break;
+            }
+
+            bool active = true;
+            for (int y = 0; active && y < resolution.Y(); ++y)
+            {
+                for (int x = 0; active && x < resolution.X(); ++x)
+                {
+                    double rr = 0;
+                    double gg = 0;
+                    double bb = 0;
+                    for (int i = 0; i < ssp_this_batch; ++i)
+                    {
+                        auto ray      = camera.SpawnRay(resolution, {x, y}, sampler->Get2D());
+                        auto radiance = integrator->Li(ctx, *sampler, scene, ray);
+
+                        rr += static_cast<double>(radiance[0]);
+                        gg += static_cast<double>(radiance[1]);
+                        bb += static_cast<double>(radiance[2]);
+                        ctx.workspace.Clear();
+                    }
+
+                    working_canvas->Append(rr, gg, bb, x, y);
                 }
 
-                canvas->At(x, y) = acc / static_cast<akFloat>(sample_per_pixel);
+                if (activity_query != nullptr && !(*activity_query)())
+                {
+                    active = false;
+                }
             }
 
-            if (y % max(1, resolution.Y() / 100) == 0)
+            if (active)
             {
-                auto progress = static_cast<int>(y * 1.f / resolution.Y() * 100);
-                printf("[thd %d] progress: %d%%\n", GlobalThreadId, progress);
+                result.ssp += ssp_this_batch;
+                result.canvas->Set(*working_canvas);
+
+                progress = static_cast<int>(result.ssp * 100.f / sample_per_pixel);
             }
+            else
+            {
+                break;
+            }
+
+            if (checkpoint_handler != nullptr)
+            {
+                (*checkpoint_handler)(progress, result);
+            }
+
+            fmt::print("[thd {}] {} ssp finished({}%)\n", thread_id, result.ssp, progress);
         }
 
-        return canvas;
+        fmt::print("[thd {}] exit, {} ssp finished({}%)\n", thread_id, result.ssp, progress);
+        return result;
     }
 
-    inline Canvas::SharedPtr ExecuteRenderingMultiThread(const Scene& scene, const Camera& camera,
-                                                         Point2i resolution, int sample_per_pixel,
-                                                         int thread_count)
+    inline RenderResult ExecuteRenderingMultiThread(
+        const Scene& scene, const Camera& camera, Point2i resolution, int sample_per_pixel,
+        int thread_count, std::function<bool()>* activity_query = nullptr,
+        std::function<void(int, const RenderResult&)>* checkpoint_handler = nullptr)
     {
-        std::atomic<int> next_thd_id = 0;
-        auto execute_render          = [&](unsigned seed, bool first) {
-            GlobalThreadId = next_thd_id++;
+        auto execute_render = [&](unsigned seed, int ssp, int id) {
+            fmt::print("[thd {}] assigned with {} ssp, start working...\n", id, ssp);
 
-            auto ssp =
-                sample_per_pixel / thread_count + (first ? sample_per_pixel % thread_count : 0);
-            return ExecuteRenderingSingleThread(scene, camera, resolution, ssp, seed);
+            return ExecuteRenderingSingleThread(scene, camera, resolution, ssp, id, seed,
+                                                activity_query, checkpoint_handler);
         };
 
-        std::vector<std::future<Canvas::SharedPtr>> futures;
+        std::random_device rnd{};
+        std::vector<std::future<RenderResult>> futures;
         for (int i = 0; i < thread_count; ++i)
         {
-            futures.push_back(std::async(execute_render, rand(), i == 0));
+            auto ssp =
+                sample_per_pixel / thread_count + (i == 0 ? sample_per_pixel % thread_count : 0);
+            futures.push_back(std::async(execute_render, rnd(), ssp, i));
         }
 
+        auto ssp    = 0;
         auto canvas = std::make_shared<Canvas>(resolution.X(), resolution.Y());
         for (auto& future : futures)
         {
             future.wait();
-            auto sub_canvas = future.get();
+            auto result = future.get();
 
-            for (int y = 0; y < resolution.Y(); ++y)
-            {
-                for (int x = 0; x < resolution.X(); ++x)
-                {
-                    canvas->At(x, y) += sub_canvas->At(x, y) / static_cast<akFloat>(thread_count);
-                }
-            }
+            ssp += result.ssp;
+            canvas->Append(*result.canvas);
         }
 
-        return canvas;
+        return RenderResult{ssp, canvas};
     }
 
 } // namespace akane

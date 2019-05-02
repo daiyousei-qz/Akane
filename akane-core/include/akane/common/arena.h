@@ -9,7 +9,7 @@
 
 namespace akane
 {
-    class Arena final : public virtual Object
+    class Arena final
     {
     private:
         struct Block
@@ -46,6 +46,12 @@ namespace akane
         Arena()
         {
         }
+
+        Arena(const Arena&) = delete;
+        Arena(Arena&&)      = delete;
+
+        Arena& operator=(const Arena&) = delete;
+        Arena& operator=(Arena&&) = delete;
 
         ~Arena()
         {

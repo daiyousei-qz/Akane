@@ -30,7 +30,7 @@ namespace akane
             auto register_bsdf = [&](Bsdf* ff) {
                 if (hybrid != nullptr)
                 {
-                    hybrid->Add(bsdf);
+                    hybrid->Add(ff);
                 }
                 else if (bsdf != nullptr)
                 {
@@ -96,12 +96,10 @@ namespace akane
 
             if (img != nullptr)
             {
-                size_t x   = u * (img->Width() - 1);
-                size_t y   = (1 - v) * (img->Height() - 1);
-                auto pixel = img->At(x, y);
+                size_t x = u * (img->Width() - 1);
+                size_t y = (1 - v) * (img->Height() - 1);
 
-                auto f = 1.f / 255.f;
-                return Spectrum{pixel.r * f, pixel.g * f, pixel.b * f};
+                return Spectrum{img->At(x, y, 0), img->At(x, y, 1), img->At(x, y, 2)};
             }
             else
             {
@@ -120,7 +118,7 @@ namespace akane
         akFloat eta_in_    = 1.f;
         akFloat eta_out_   = 1.f;
 
-        Image::SharedPtr texture_diffuse_;
-        Image::SharedPtr texture_specular_;
+        Image::SharedPtr texture_diffuse_  = nullptr;
+        Image::SharedPtr texture_specular_ = nullptr;
     };
 } // namespace akane

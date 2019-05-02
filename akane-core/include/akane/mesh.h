@@ -162,11 +162,11 @@ namespace akane
                 using std::max;
                 using std::min;
 
-                auto u = 0.5f + atan2(vertex.Y(), vertex.X()) / (2 * kPI);
-                auto v = 0.5f - asin(vertex.Z()) / kPI;
+                float u = 0.5f + atan2(vertex.Y(), vertex.X()) / (2 * kPI);
+				float v = 0.5f - asin(vertex.Z()) / kPI;
 
-                u = max(min(u, 1.f), 0.f);
-                v = max(min(v, 1.f), 0.f);
+				u = std::clamp(u, 0.f, 1.f);
+				v = std::clamp(v, 0.f, 1.f);
 
                 static auto vert = vertex;
                 vert             = vertex;

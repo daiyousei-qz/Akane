@@ -45,9 +45,11 @@ namespace akane
         virtual Spectrum SampleAndEval(const Point2f& u, const Vec3f& wo, Vec3f& wi_out,
                                        akFloat& pdf_out) const noexcept
         {
+			static auto su = u;
+			su = u;
             int index        = floor(u[0] * bsdf_n_);
             auto sample_bsdf = bsdf_list_[index];
-            auto u2          = Point2f{u[0] * (index + 1) - index, u[1]};
+            auto u2          = Point2f{u[0] * bsdf_n_ - index, u[1]};
 
             Vec3f wi;
             akFloat pdf;

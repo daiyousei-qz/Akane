@@ -14,14 +14,28 @@ namespace akane
     constexpr Spectrum kBlackSpectrum = {0, 0, 0};
     constexpr Spectrum kWhiteSpectrum = {1.f, 1.f, 1.f};
 
-	// TODO: convert to sRGB
-	inline Point3i SpectrumToRGB(const Spectrum& s)
+	inline bool InvalidSpectrum(const Spectrum& s)
 	{
-		auto rr = min(255, static_cast<int>(256.f * s[0]));
-		auto gg = min(255, static_cast<int>(256.f * s[1]));
-		auto bb = min(255, static_cast<int>(256.f * s[2]));
-		return { rr,gg, bb };
+		auto subzero = s[0] < 0 || s[1] < 0 || s[2] < 0;
+		auto inf_test = isinf(s[0]) || isinf(s[1]) || isinf(s[2]);
+		auto nan_test = isnan(s[0]) || isnan(s[1]) || isnan(s[2]);
+
+		return subzero || inf_test || nan_test;
 	}
+
+    inline Point3i SpectrumToRGB(const Spectrum& s)
+    {
+        auto rr = min(255, static_cast<int>(255.f * s[0]));
+        auto gg = min(255, static_cast<int>(255.f * s[1]));
+        auto bb = min(255, static_cast<int>(255.f * s[2]));
+        return {rr, gg, bb};
+    }
+
+    inline Spectrum RGBToSpectrum(uint8_t r, uint8_t g, uint8_t b)
+    {
+        return Spectrum{static_cast<akFloat>(r) / 255.f, static_cast<akFloat>(g) / 255.f,
+                        static_cast<akFloat>(b) / 255.f};
+    }
 
     inline Spectrum GammaCorrect(const Spectrum& s, akFloat gamma)
     {
@@ -29,22 +43,22 @@ namespace akane
         return Spectrum{f(s[0]), f(s[1]), f(s[2])};
     }
 
-	inline Spectrum ToneMap_Reinhard(const Spectrum& s)
-	{
-		constexpr akFloat middle_gray = 1.f;
-		auto color = s * middle_gray;
+    inline Spectrum ToneMap_Reinhard(const Spectrum& s)
+    {
+        constexpr akFloat middle_gray = 1.f;
+        auto color                    = s * middle_gray;
 
-		return color / (1.f + color);
-	}
+        return color / (1.f + color);
+    }
 
-	inline Spectrum ToneMap_Aces(const Spectrum& s)
-	{
-		constexpr float a = 2.51f;
-		constexpr float b = 0.03f;
-		constexpr float c = 2.43f;
-		constexpr float d = 0.59f;
-		constexpr float e = 0.14f;
+    inline Spectrum ToneMap_Aces(const Spectrum& s)
+    {
+        constexpr float a = 2.51f;
+        constexpr float b = 0.03f;
+        constexpr float c = 2.43f;
+        constexpr float d = 0.59f;
+        constexpr float e = 0.14f;
 
-		return (s * (a * s + b)) / (s * (c * s + d) + e);
-	}
+        return (s * (a * s + b)) / (s * (c * s + d) + e);
+    }
 } // namespace akane

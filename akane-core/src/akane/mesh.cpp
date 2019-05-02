@@ -31,7 +31,7 @@ namespace akane
             else
             {
                 auto texture_path    = dir / name;
-                texture_lookup[name] = Image::LoadImage(texture_path.string());
+                texture_lookup[name] = LoadImage(texture_path.string());
 
                 return texture_lookup[name];
             }
@@ -101,47 +101,56 @@ namespace akane
 
         for (const auto& shape : reader.GetShapes())
         {
-            auto geom  = make_shared<GeometryDesc>();
-            geom->name = shape.name;
+			std::unordered_map<int, GeometryDesc::SharedPtr> geom_map;
 
-            auto vertex_iter = shape.mesh.indices.begin();
-            for (int face_vertex_cnt : shape.mesh.num_face_vertices)
-            {
-                auto v0 = *vertex_iter;
-                ++vertex_iter;
-                --face_vertex_cnt;
+			auto vertex_iter = shape.mesh.indices.begin();
+			for (int face_index = 0; face_index < shape.mesh.num_face_vertices.size(); ++face_index)
+			{
+				auto face_vertex_count = shape.mesh.num_face_vertices[face_index];
+				auto face_material = shape.mesh.material_ids[face_index];
 
-                auto v1 = *vertex_iter;
-                ++vertex_iter;
-                --face_vertex_cnt;
+				auto& geom = geom_map[face_material];
+				if (geom == nullptr)
+				{
+					geom = make_shared<GeometryDesc>();
+					geom->name = shape.name;
 
-                for (int i = 0; i < face_vertex_cnt; ++i)
-                {
-                    auto v2 = *vertex_iter;
-                    ++vertex_iter;
+					geom->material = material_vec[face_material];
+				}
 
-                    geom->triangle_indices.push_back(
-                        {v0.vertex_index, v1.vertex_index, v2.vertex_index});
+				auto v0 = *vertex_iter;
+				++vertex_iter;
+				--face_vertex_count;
 
-                    if (!mesh->normals.empty() && v0.normal_index != -1)
-                    {
-                        geom->normal_indices.push_back(
-                            {v0.normal_index, v1.normal_index, v2.normal_index});
-                    }
-                    if (!mesh->uv.empty() && v0.texcoord_index != -1)
-                    {
-                        geom->uv_indices.push_back(
-                            {v0.texcoord_index, v1.texcoord_index, v2.texcoord_index});
-                    }
-                }
-            }
+				auto v1 = *vertex_iter;
+				++vertex_iter;
+				--face_vertex_count;
 
-            if (!material_vec.empty())
-            {
-                geom->material = material_vec[shape.mesh.material_ids.front()];
-            }
+				for (int i = 0; i < face_vertex_count; ++i)
+				{
+					auto v2 = *vertex_iter;
+					++vertex_iter;
 
-            mesh->geomtries.push_back(geom);
+					geom->triangle_indices.push_back(
+						{ v0.vertex_index, v1.vertex_index, v2.vertex_index });
+
+					if (!mesh->normals.empty() && v0.normal_index != -1)
+					{
+						geom->normal_indices.push_back(
+							{ v0.normal_index, v1.normal_index, v2.normal_index });
+					}
+					if (!mesh->uv.empty() && v0.texcoord_index != -1)
+					{
+						geom->uv_indices.push_back(
+							{ v0.texcoord_index, v1.texcoord_index, v2.texcoord_index });
+					}
+				}
+			}
+
+			for (const auto& [mat_id, geom] : geom_map)
+			{
+				mesh->geomtries.push_back(geom);
+			}
         }
 
         mesh->texture_lookup = std::move(texture_lookup);

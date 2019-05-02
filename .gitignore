@@ -260,6 +260,9 @@ paket-files/
 __pycache__/
 *.pyc
 
+# Visual Studio Related Stuffs
+CmakeSettings.json
+
 # Local Code Stash
 stash/
 embree/

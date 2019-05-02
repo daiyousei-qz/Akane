@@ -1,5 +1,6 @@
 #pragma once
 #include "akane/math/float_type.h"
+#include "akane/math/math.h"
 #include <array>
 #include <algorithm>
 #include <numeric>
@@ -188,7 +189,7 @@ namespace akane
     template <typename T, size_t N>
     inline constexpr Vec<T, N> operator+(Vec<T, N> v) noexcept
     {
-        return x;
+        return v;
     }
     template <typename T, size_t N>
     inline constexpr Vec<T, N> operator-(Vec<T, N> v) noexcept
