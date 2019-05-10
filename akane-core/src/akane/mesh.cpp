@@ -58,6 +58,10 @@ namespace akane
         {
 			result->roughness = pow(2 / (2 + mat.shininess), 1.f / 4.f);
         }
+		else
+		{
+			result->roughness = 0;
+		}
 
         return result;
     }

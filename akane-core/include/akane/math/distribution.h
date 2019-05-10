@@ -4,7 +4,7 @@
 
 namespace akane
 {
-    class DiscrateDistribution
+	class DiscrateDistribution
     {
     public:
         DiscrateDistribution() = default;
@@ -23,7 +23,7 @@ namespace akane
 
             for (int i = 1; i < thresholds_.size(); ++i)
             {
-                if (u > thresholds_[i - 1] && u < thresholds_[i])
+                if (u >= thresholds_[i - 1] && u < thresholds_[i])
                 {
 					pdf_out = thresholds_[i] - thresholds_[i - 1];
                     return i;
@@ -31,6 +31,7 @@ namespace akane
             }
 
 			// error
+
 			pdf_out = 0;
 			return -1;
         }

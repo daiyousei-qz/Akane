@@ -149,7 +149,7 @@ namespace akane
         {
 			static_assert(std::is_floating_point_v<T>);
 
-			return *this / Length();
+			return *this * (1.f / Length());
         }
 
 		T Distance(Vec other) const noexcept

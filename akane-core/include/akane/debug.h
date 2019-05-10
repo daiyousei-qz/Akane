@@ -43,17 +43,18 @@ namespace akane
 
     inline Camera::Ptr CreateScene_Sphere(EmbreeScene& scene)
     {
-        auto mat0 = MakeLambertianMaterial({1.f, 1.f, 1.f});
+        auto mat0 = MakeLambertianMaterial({.2f, .3f, .4f});
         auto mat1 = MakeMirrorMaterial({1.f, 1.f, 1.f}, 0.f, 10);
         auto mat2 = MakeMirrorMaterial({1.f, 1.f, 1.f}, 0.03f, 10);
         auto mat3 = MakeGlassMaterial({1.f, 1.f, 1.f});
-        
-		AddSphere(scene, {0, 2, 1}, 1, mat1);
+
+        AddSphere(scene, {0, 2, 1}, 1, mat1);
         AddSphere(scene, {0, -2, 1}, 1, mat2);
         AddSphere(scene, {0, 0, 1}, 1, mat0);
 
-        scene.AddGround(0, {.7f, .5f, .4f});
-        scene.AddTriangleLight({-2, -2, 10}, {-2, 2, 10}, {2, 2, 10}, {1, 1, 1});
+        scene.AddGround(0, {.35f, .25f, .2f});
+        scene.AddTriangleLight({-1, -1, 3}, {-1, 1, 3}, {1, 1, 3}, {1, 1, 1});
+        scene.AddTriangleLight({-1, -1, 3}, {1, 1, 3}, {1, -1, 3}, {1, 1, 1});
         scene.CreateGlobalLight_Skybox({.5, .7, 1.});
 
         return CreatePinholeCamera({-5, 0, 1}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
@@ -61,10 +62,10 @@ namespace akane
 
     inline Camera::Ptr CreateScene_Bunny(EmbreeScene& scene)
     {
-        auto mesh = LoadMesh("d:/scene/bunny2/bunny2.obj");
-		mesh->geomtries.front()->material->roughness = .6f;
-		mesh->geomtries.front()->material->eta = 10.f;
-		scene.AddMesh(mesh, Transform::CreateScale(0.01).RotateX(-kPI / 2));
+        auto mesh                                    = LoadMesh("d:/scene/bunny2/bunny2.obj");
+        mesh->geomtries.front()->material->roughness = .6f;
+        mesh->geomtries.front()->material->eta       = 10.f;
+        scene.AddMesh(mesh, Transform::CreateScale(0.01).RotateX(-kPI / 2));
 
         scene.AddGround(-3, {.4, .4, .4});
         scene.AddTriangleLight({-1, -1, 10}, {-1, 1, 10}, {1, 1, 10}, {1, 1, 1});
@@ -104,17 +105,18 @@ namespace akane
         return CreatePinholeCamera({-.5, 0, .3}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
     }
 
-	inline Camera::Ptr CreateScene_LivingRoom(EmbreeScene& scene)
-	{
-		auto mesh = LoadMesh("d:/scene/livingroom/living_room.obj");
-		scene.AddMesh(mesh, Transform::CreateRotateX(-kPI / 2).RotateZ(kPI));
-		
-		return CreatePinholeCamera({ -1.92, 5.43, 1 }, { 0.60, -0.79, 0 }, { 0, 0, 1 }, { .5f, .5f });
-		//return CreatePinholeCamera({ -2.243, 5.534, 1 }, { 0.633, -0.774, 0 }, { 0, 0, 1 }, { .5f, .5f });
-	}
+    inline Camera::Ptr CreateScene_LivingRoom(EmbreeScene& scene)
+    {
+        auto mesh = LoadMesh("d:/scene/livingroom/living_room.obj");
+        scene.AddMesh(mesh, Transform::CreateRotateX(-kPI / 2).RotateZ(kPI));
 
-	inline Camera::Ptr CreateScene_Default(EmbreeScene& scene)
-	{
-		return CreateScene_LivingRoom(scene);
-	}
+        return CreatePinholeCamera({-1.92, 5.43, 1}, {0.60, -0.79, 0}, {0, 0, 1}, {.5f, .5f});
+        // return CreatePinholeCamera({ -2.243, 5.534, 1 }, { 0.633, -0.774, 0 }, { 0, 0, 1 }, {
+        // .5f, .5f });
+    }
+
+    inline Camera::Ptr CreateScene_Default(EmbreeScene& scene)
+    {
+        return CreateScene_LivingRoom(scene);
+    }
 } // namespace akane

@@ -32,7 +32,7 @@ BOOL WINAPI HandlerRoutine(_In_ DWORD dwCtrlType)
         GlobalActiveFlag = false;
     }
 
-	return true;
+    return true;
 }
 
 template <typename... TArgs> void Error(const string& format, const TArgs&... args)
@@ -178,16 +178,16 @@ void RenderConfig(const json& config)
 
 void RenderDefault()
 {
-	//*/
-	static char json_buf[10000];
-	auto file = fopen("d:/fireplace.json", "rb");
-	auto read_sz = fread(json_buf, 1, sizeof json_buf, file);
-	auto config = json::parse(json_buf, json_buf + read_sz);
+    /*/
+    static char json_buf[10000];
+    auto file = fopen("d:/fireplace.json", "rb");
+    auto read_sz = fread(json_buf, 1, sizeof json_buf, file);
+    auto config = json::parse(json_buf, json_buf + read_sz);
 
-	RenderConfig(config);
-	//*/
+    RenderConfig(config);
+    //*/
 
-	/*/
+    //*/
     EmbreeScene scene;
 
     auto camera = CreateScene_LivingRoom(scene);
@@ -198,25 +198,26 @@ void RenderDefault()
     int thd  = 4;
 
     printf("rendering in %d thread, %d ssp, %dx%d\n", thd, ssp, size, size);
-    // auto canvas = ExecuteRenderingMultiThread(scene, *camera, {size, size}, ssp, thd);
-    // canvas->SaveRaw("d:/test2.raw.bin");
-    // canvas->SaveImage("d:/test2.png", 2.4f);
-	//*/
+    auto result    = ExecuteRenderingMultiThread(scene, *camera, {size, size}, ssp, thd);
+    akFloat scalar = 1.f / result.ssp;
+    result.canvas->SaveRaw("d:/test2.raw.bin", scalar);
+    result.canvas->SaveImage("d:/test2.png", scalar, 2.4f);
+    //*/
 }
 
 int main(int argc, char** argv)
 {
-	SetConsoleCtrlHandler(HandlerRoutine, true);
+    SetConsoleCtrlHandler(HandlerRoutine, true);
     srand(1040);
 
     if (argc > 1)
     {
         static char json_buf[10000];
-        auto file    = fopen(argv[1], "rb");
-		if (file == nullptr)
-		{
-			fmt::print("failed to open file {}\n", argv[1]);
-		}
+        auto file = fopen(argv[1], "rb");
+        if (file == nullptr)
+        {
+            fmt::print("failed to open file {}\n", argv[1]);
+        }
 
         auto read_sz = fread(json_buf, 1, sizeof json_buf, file);
         auto config  = json::parse(json_buf, json_buf + read_sz);
