@@ -28,6 +28,8 @@ namespace akane
             data_.resize(width * height * kCanvasChannel, 0.);
         }
 
+        int Width() const noexcept { return width_; }
+        int Height() const noexcept { return height_; }
 
 		void Set(const Canvas& other) {
 			std::copy(other.data_.begin(), other.data_.end(), data_.begin());

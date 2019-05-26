@@ -7,13 +7,15 @@
 #include "akane/debug.h"
 #include <mutex>
 #include <vector>
+#include <chrono>
 
 namespace akane::gui
 {
+    constexpr float kFrameTimeUpdateRate  = 0.7f;
     constexpr Vec3f kDefaultCameraForward = {1, 0, 0};
     constexpr Vec3f kDefaultCameraUpward  = {0, 0, 1};
 
-    enum class RenderingStrategy
+    enum class PreviewIntegrator
     {
         DirectIntersection,
         PathTracing,
@@ -23,34 +25,16 @@ namespace akane::gui
     struct RenderingState
     {
         int Version                = 0; // modify this to force re-render
-        RenderingStrategy Strategy = RenderingStrategy::DirectIntersection;
+        PreviewIntegrator Strategy = PreviewIntegrator::PathTracing;
 
         Point2i Resolution    = {200, 200};
         Point3f CameraOrigin  = {-5, 0, 1};
         Point3f CameraForward = {1, 0, 0};
         Point3f CameraUpward  = {0, 0, 1};
         Point2f CameraFov     = {.6f, .6f};
-
-        int ResolutionWidth  = 200;
-        int ResolutionHeight = 200;
-
-        float CameraOriginX = -5;
-        float CameraOriginY = 0;
-        float CameraOriginZ = 1;
-
-        float CameraForwardX = 1;
-        float CameraForwardY = 0;
-        float CameraForwardZ = 0;
-
-        float CameraUpwardX = 0;
-        float CameraUpwardY = 0;
-        float CameraUpwardZ = 1;
-
-        float CameraFovX = .6f;
-        float CameraFovY = .6f;
     };
 
-    bool EqualState(const RenderingState& lhs, const RenderingState& rhs)
+    inline bool EqualState(const RenderingState& lhs, const RenderingState& rhs)
     {
         return lhs.Version == rhs.Version && lhs.Strategy == rhs.Strategy &&
                lhs.Resolution == rhs.Resolution && lhs.CameraOrigin == rhs.CameraOrigin &&
@@ -65,61 +49,13 @@ namespace akane::gui
         void Update();
 
     public:
-        Vec3f CurrentCameraOrigin()
-        {
-            return Vec3f{CurrentState.CameraOriginX, CurrentState.CameraOriginY,
-                         CurrentState.CameraOriginZ};
-        }
-        Vec3f CurrentCameraForward()
-        {
-            return Vec3f{CurrentState.CameraForwardX, CurrentState.CameraForwardY,
-                         CurrentState.CameraForwardZ};
-        }
-        Vec3f CurrentCameraUpward()
-        {
-            return Vec3f{CurrentState.CameraUpwardX, CurrentState.CameraUpwardY,
-                         CurrentState.CameraUpwardZ};
-        }
-        Vec2f CurrentCameraFov()
-        {
-            return Vec2f{CurrentState.CameraFovX, CurrentState.CameraFovY};
-        }
-
-        bool DetectGlobalResolutionChange()
-        {
-            return CurrentState.ResolutionWidth != PreviousState.ResolutionWidth ||
-                   CurrentState.ResolutionHeight != PreviousState.ResolutionHeight;
-        }
-        bool DetectGlobalStateChange()
-        {
-            return CurrentState.Version != PreviousState.Version ||
-                   CurrentState.ResolutionWidth != PreviousState.ResolutionWidth ||
-                   CurrentState.ResolutionHeight != PreviousState.ResolutionHeight ||
-                   CurrentState.CameraOriginX != PreviousState.CameraOriginX ||
-                   CurrentState.CameraOriginY != PreviousState.CameraOriginY ||
-                   CurrentState.CameraOriginZ != PreviousState.CameraOriginZ ||
-                   CurrentState.CameraForwardX != PreviousState.CameraForwardX ||
-                   CurrentState.CameraForwardY != PreviousState.CameraForwardY ||
-                   CurrentState.CameraForwardZ != PreviousState.CameraForwardZ ||
-                   CurrentState.CameraUpwardX != PreviousState.CameraUpwardX ||
-                   CurrentState.CameraUpwardY != PreviousState.CameraUpwardY ||
-                   CurrentState.CameraUpwardZ != PreviousState.CameraUpwardZ ||
-                   CurrentState.CameraFovX != PreviousState.CameraFovX ||
-                   CurrentState.CameraFovY != PreviousState.CameraFovY;
-        }
-
-        void ForceRestartRender()
-        {
-            CurrentState.Version += 1;
-        }
-
-        void RenderOnce(Canvas* canvas, const Camera* camera)
+        void RenderOnce(Canvas* canvas, const Camera* camera, PreviewIntegrator strategy)
         {
             if (canvas != nullptr && camera != nullptr)
             {
-                ExecuteRenderIncremental(
-                    *canvas, *sampler, scene, *camera,
-                    {CurrentState.ResolutionWidth, CurrentState.ResolutionHeight}, 1, false);
+                ExecuteRenderIncremental(*canvas, *sampler, scene, *camera,
+                                         {canvas->Width(), canvas->Height()}, 1,
+                                         strategy == PreviewIntegrator::DirectIntersection);
             }
         }
 
@@ -131,6 +67,7 @@ namespace akane::gui
 
         void RenderInBackground()
         {
+            int spp = 0;
             RenderingState last_state{};
             Canvas::SharedPtr canvas =
                 std::make_shared<Canvas>(last_state.Resolution.X(), last_state.Resolution.Y());
@@ -146,6 +83,8 @@ namespace akane::gui
 
                 if (!EqualState(last_state, state))
                 {
+                    spp = 0;
+
                     if (last_state.Resolution == state.Resolution)
                     {
                         canvas->Clear();
@@ -160,10 +99,19 @@ namespace akane::gui
 
                 auto camera = CreatePinholeCamera(state.CameraOrigin, state.CameraForward,
                                                   state.CameraUpward, state.CameraFov);
-                RenderOnce(canvas.get(), camera.get());
+
+                auto t0 = std::chrono::high_resolution_clock::now();
+                RenderOnce(canvas.get(), camera.get(), state.Strategy);
+                auto t1 = std::chrono::high_resolution_clock::now();
+
+                float frame_time =
+                    std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+                frame_time /= 1000.f;
+
+                spp += 1;
 
                 {
-                    std::unique_lock<std::mutex> lock{ DisplayUpdatingLock };
+                    std::unique_lock<std::mutex> lock{DisplayUpdatingLock};
 
                     if (canvas_replaced)
                     {
@@ -171,19 +119,24 @@ namespace akane::gui
                             std::make_shared<Canvas>(state.Resolution.X(), state.Resolution.Y());
                     }
 
-                    CurrentSpp += 1;
+                    CurrentSpp   = spp;
+                    AvgFrameTime = (1.f - kFrameTimeUpdateRate) * AvgFrameTime +
+                                   kFrameTimeUpdateRate * frame_time;
+
                     DisplayCanvas->Set(*canvas);
                 }
+
+                last_state = state;
             }
         }
 
     private:
         //
         //
+        RenderingState MutatingState;
         RenderingState CurrentState;
-        RenderingState PreviousState;
 
-        float DisplayScale = 400.f / CurrentState.ResolutionWidth;
+        float DisplayScale = 400.f / CurrentState.Resolution.X();
 
         float CameraMoveRatePerSec   = 1.f;
         float CameraRotateRatePerSec = 1.f;
@@ -195,14 +148,16 @@ namespace akane::gui
         int n;
         Canvas::SharedPtr canvas;
 
-        RenderingStrategy RenderingStatus;
+        PreviewIntegrator RenderingStatus;
 
         int CurrentSpp;
+        float AvgFrameTime = 1.f; // millisec
         Canvas::SharedPtr DisplayCanvas;
-        Canvas::SharedPtr RenderingCanvas;
 
         std::mutex SceneUpdatingLock;
         std::mutex DisplayUpdatingLock;
+
+        std::thread RenderingThd;
 
         //
         //
