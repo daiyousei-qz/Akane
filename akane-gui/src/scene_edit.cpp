@@ -57,14 +57,14 @@ namespace akane::gui
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                     1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::Text("Renderer average %.3f ms/frame (%.1f FPS)",
-            AvgFrameTime, 1000.f / AvgFrameTime);
+        ImGui::Text("Renderer average %.3f ms/frame (%.1f FPS)", AvgFrameTime,
+                    1000.f / AvgFrameTime);
 
         ImGui::End();
     }
     void SceneEditWindow::UpdateImageControl()
     {
-        ImScoped::Window window{ "Renderer" };
+        ImScoped::Window window{"Renderer"};
 
         int resolution[2]{MutatingState.Resolution.X(), MutatingState.Resolution.Y()};
         ImGui::InputInt2("Resolution", resolution);
@@ -101,7 +101,7 @@ namespace akane::gui
     }
     void SceneEditWindow::UpdateCameraControl()
     {
-        ImScoped::Window window{ "Camera" };
+        ImScoped::Window window{"Camera"};
 
         Vec3f camera_origin   = MutatingState.CameraOrigin;
         Vec3f camera_forward  = MutatingState.CameraForward;
@@ -136,7 +136,7 @@ namespace akane::gui
 
         ImGui::SliderFloat("move rate", &CameraMoveRatePerSec, 0.f, 2.f);
 
-        float camera_move_rate     = CameraMoveRatePerSec * (0.05f * AvgFrameTime / ImGui::GetIO().Framerate);
+        float camera_move_rate     = CameraMoveRatePerSec * 2.f / ImGui::GetIO().Framerate;
         float camera_move_forward  = 0.f;
         float camera_move_upward   = 0.f;
         float camera_move_leftward = 0.f;
@@ -175,7 +175,7 @@ namespace akane::gui
 
         ImGui::SliderFloat("rotate rate", &CameraRotateRatePerSec, 0.f, 2.f);
 
-        float camera_rotate_rate       = CameraRotateRatePerSec * (0.02f * AvgFrameTime / ImGui::GetIO().Framerate);
+        float camera_rotate_rate       = CameraRotateRatePerSec / ImGui::GetIO().Framerate;
         float camera_rotate_horizontal = 0.f;
         float camera_rotate_vertical   = 0.f;
         float camera_rotate_view       = 0.f;
@@ -223,7 +223,7 @@ namespace akane::gui
     }
     void SceneEditWindow::UpdateMaterialEditor()
     {
-        ImScoped::Window window{ "Material Edit" };
+        ImScoped::Window window{"Material Edit"};
 
         bool scene_changed = false;
         for (auto material : EditableMaterials)
@@ -287,7 +287,7 @@ namespace akane::gui
             });
         }
 
-        ImScoped::Window window{ "Preview" };
+        ImScoped::Window window{"Preview"};
         ImGui::Image(DisplayTex->Id(), {DisplayScale * CurrentState.Resolution.X(),
                                         DisplayScale * CurrentState.Resolution.Y()});
     }
