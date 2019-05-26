@@ -117,6 +117,6 @@ namespace akane
 
     inline Camera::Ptr CreateScene_Default(EmbreeScene& scene)
     {
-        return CreateScene_LivingRoom(scene);
+        return CreateScene_Sphere(scene);
     }
 } // namespace akane

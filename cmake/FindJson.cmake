@@ -1,4 +1,3 @@
-
 if(AKANE_EXTERNAL_JSON_INCLUDED)
 	return()
 endif()

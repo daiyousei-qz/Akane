@@ -10,6 +10,7 @@ include(cmake/FindJson.cmake)
 include(cmake/FindFmtlib.cmake)
 include(cmake/FindSpdlog.cmake)
 include(cmake/FindTinyObjLoader.cmake)
+include(cmake/FindQuickImGui.cmake)
 
 add_subdirectory(./akane-core)
 add_subdirectory(./akane-gui)

@@ -13,3 +13,6 @@
 [submodule "external/spdlog"]
 	path = external/spdlog
 	url = https://github.com/gabime/spdlog.git
+[submodule "external/QuickImGui"]
+	path = external/QuickImGui
+	url = https://github.com/edsDev/QuickImGui.git
