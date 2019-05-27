@@ -1,11 +1,12 @@
 #pragma once
 #include "akane/core.h"
-#include "akane/io/image.h"
+#include "akane/texture.h"
 #include <memory>
 #include <vector>
 #include <string>
 #include <unordered_map>
 #include <any>
+#include <string_view>
 
 namespace akane
 {
@@ -22,9 +23,9 @@ namespace akane
 
         Vec3f emission = {};
 
-        Image::SharedPtr ambient_texture  = nullptr;
-        Image::SharedPtr diffuse_texture  = nullptr;
-        Image::SharedPtr specular_texture = nullptr;
+        Texture3D::SharedPtr ambient_texture  = nullptr;
+        Texture3D::SharedPtr diffuse_texture  = nullptr;
+        Texture3D::SharedPtr specular_texture = nullptr;
 
         // pbr
         akFloat eta       = 10.f;
@@ -52,7 +53,7 @@ namespace akane
         std::vector<Point3f> normals;
         std::vector<Point2f> uv;
 
-        std::unordered_map<std::string, Image::SharedPtr> texture_lookup;
+        std::unordered_map<std::string, Texture3D::SharedPtr> texture_lookup;
 
         std::vector<GeometryDesc::SharedPtr> geomtries;
     };

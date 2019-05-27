@@ -52,7 +52,8 @@ namespace akane
         AddSphere(scene, {0, -2, 1}, 1, mat2);
         AddSphere(scene, {0, 0, 1}, 1, mat0);
 
-        scene.AddGround(0, {.35f, .25f, .2f});
+        scene.AddGround(
+            0, std::make_shared<CheckerboardTexture>(Vec3f{.2f, .2f, .2f}, Vec3f{.8f, .8f, .8f}, 1e5f));
         scene.AddTriangleLight({-1, -1, 3}, {-1, 1, 3}, {1, 1, 3}, {1, 1, 1});
         scene.AddTriangleLight({-1, -1, 3}, {1, 1, 3}, {1, -1, 3}, {1, 1, 1});
         scene.CreateGlobalLight_Skybox({.5, .7, 1.});
@@ -67,7 +68,7 @@ namespace akane
         mesh->geomtries.front()->material->eta       = 10.f;
         scene.AddMesh(mesh, Transform::CreateScale(0.01).RotateX(-kPI / 2));
 
-        scene.AddGround(-3, {.4, .4, .4});
+        scene.AddGround(-3, std::make_shared<SolidTexture>(Vec3f{.4f, .4f, .4f}));
         scene.AddTriangleLight({-1, -1, 10}, {-1, 1, 10}, {1, 1, 10}, {1, 1, 1});
         scene.CreateGlobalLight_Skybox({.5, .7, 1.});
         return CreatePinholeCamera({-8, 0, 0}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
@@ -99,7 +100,7 @@ namespace akane
         auto mesh = LoadMesh("d:/scene/vk/vokselia_spawn.obj");
         scene.AddMesh(mesh, Transform::CreateRotateX(-kPI / 2).RotateZ(kPI));
 
-        scene.AddGround(-3, {.7, .7, .7});
+        scene.AddGround(-3, std::make_shared<SolidTexture>(Vec3f{.7f, .7f, .7f}));
         scene.CreateGlobalLight_Skybox({.5, .7, 1.});
 
         return CreatePinholeCamera({-.5, 0, .3}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});

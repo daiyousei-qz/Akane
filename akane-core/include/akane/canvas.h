@@ -105,7 +105,7 @@ namespace akane
             fclose(file);
         }
 
-        void SaveImage(const std::string& filename, akFloat scalar = 1.f, akFloat gamma = 2.4f)
+        void SaveImage(const std::string& filename, akFloat scalar = 1.f)
         {
             std::vector<uint8_t> graph;
             for (int y = 0; y < height_; ++y)
@@ -113,7 +113,7 @@ namespace akane
                 for (int x = 0; x < width_; ++x)
                 {
                     auto spectrum = GetSpectrum(x, y, scalar);
-                    auto color    = SpectrumToRGB(GammaCorrect(ToneMap_Aces(spectrum), gamma));
+                    auto color    = SpectrumToRGB(Linear2sRGB(ToneMap_Aces(spectrum)));
 
                     for (int i = 0; i < 3; ++i)
                     {

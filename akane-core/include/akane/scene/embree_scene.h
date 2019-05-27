@@ -125,7 +125,7 @@ namespace akane
                      const Transform& transform = Transform::Identity());
 
         // for testing
-        void AddGround(akFloat z, const Spectrum& albedo);
+        void AddGround(akFloat z, Texture3D::SharedPtr tex);
         void AddTriangleLight(const Point3f& v0, const Point3f& v1, const Point3f& v2,
                               const Spectrum& albedo);
 

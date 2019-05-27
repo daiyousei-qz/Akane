@@ -8,11 +8,6 @@ namespace akane::gui
 {
     void SceneEditWindow::Initialize()
     {
-        // load fonts
-        ImGuiIO& io = ImGui::GetIO();
-        io.Fonts->AddFontFromFileTTF("d:/fonts/simhei.ttf", 16.0f, nullptr,
-                                     io.Fonts->GetGlyphRangesDefault());
-
         // load scene
         sampler = CreateRandomSampler(rand());
 
@@ -39,7 +34,7 @@ namespace akane::gui
 
         // update window
         UpdateStatusControl();
-        UpdateRendererEditor();
+        UpdateRenderingEditor();
         UpdateCameraEditor();
         UpdateMaterialEditor();
 

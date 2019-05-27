@@ -1,4 +1,5 @@
 #include "akane/mesh.h"
+#include "akane/texture.h"
 #include "tiny_obj_loader.h"
 #include <filesystem>
 
@@ -14,10 +15,10 @@ static Vec3f p2v(const akFloat* p)
 namespace akane
 {
     static MaterialDesc::SharedPtr
-    ParseMaterial(unordered_map<string, Image::SharedPtr>& texture_lookup,
+    ParseMaterial(unordered_map<string, Texture3D::SharedPtr>& texture_lookup,
                   const tinyobj::material_t& mat, const path& dir)
     {
-        auto try_load_texture = [&](const string& name) -> Image::SharedPtr {
+        auto try_load_texture = [&](const string& name) -> Texture3D::SharedPtr {
             if (name.empty())
             {
                 return nullptr;
@@ -31,7 +32,7 @@ namespace akane
             else
             {
                 auto texture_path    = dir / name;
-                texture_lookup[name] = LoadImage(texture_path.string());
+                texture_lookup[name] = make_shared<ImageTexture>(texture_path.string());
 
                 return texture_lookup[name];
             }
@@ -78,7 +79,7 @@ namespace akane
         auto success           = reader.ParseFromFile(file.string(), config);
 
         vector<MaterialDesc::SharedPtr> material_vec;
-        unordered_map<string, Image::SharedPtr> texture_lookup;
+        unordered_map<string, Texture3D::SharedPtr> texture_lookup;
         for (const auto& material : reader.GetMaterials())
         {
             material_vec.push_back(ParseMaterial(texture_lookup, material, dir));

@@ -1,6 +1,6 @@
 #pragma once
 #include "akane/material.h"
-#include "akane/io/image.h"
+#include "akane/texture.h"
 #include "akane/bsdf/lambertian.h"
 #include "akane/bsdf/specular.h"
 #include "akane/bsdf/microfacet.h"
@@ -51,7 +51,7 @@ namespace akane
 
             if (ks_.Max() > 1e-5)
             {
-                auto albedo = ks_ * EvalTexture(texture_specular_.get(), u, v);
+                auto albedo = ks_ * EvalTexture(tex_specular_.get(), u, v);
                 if (roughness_ < 0.01f)
                 {
                     register_bsdf(workspace.Construct<SpecularReflection>(albedo));
@@ -68,7 +68,7 @@ namespace akane
 
             if (kd_.Max() > 1e-5)
             {
-                auto albedo = kd_ * EvalTexture(texture_diffuse_.get(), u, v);
+                auto albedo = kd_ * EvalTexture(tex_diffuse_.get(), u, v);
                 register_bsdf(workspace.Construct<LambertianReflection>(albedo));
             }
 
@@ -87,19 +87,11 @@ namespace akane
         }
 
     private:
-        Spectrum EvalTexture(const Image* img, akFloat u, akFloat v) const noexcept
+        Spectrum EvalTexture(const Texture3D* tex, float u, float v) const noexcept
         {
-            while (u < 0) u += 1.f;
-            while (u > 1) u -= 1.f;
-            while (v < 0) v += 1.f;
-            while (v > 1) v -= 1.f;
-
-            if (img != nullptr)
+            if (tex != nullptr)
             {
-                size_t x = u * (img->Width() - 1);
-                size_t y = (1 - v) * (img->Height() - 1);
-
-                return Spectrum{img->At(x, y, 0), img->At(x, y, 1), img->At(x, y, 2)};
+                return tex->Eval(u, v);
             }
             else
             {
@@ -118,7 +110,7 @@ namespace akane
         akFloat eta_in_    = 1.f;
         akFloat eta_out_   = 1.f;
 
-        Image::SharedPtr texture_diffuse_  = nullptr;
-        Image::SharedPtr texture_specular_ = nullptr;
+        Texture3D::SharedPtr tex_diffuse_ = nullptr;
+        Texture3D::SharedPtr tex_specular_ = nullptr;
     };
 } // namespace akane

@@ -173,7 +173,7 @@ void RenderConfig(const json& config)
 
     akFloat scalar = 1.f / result.ssp;
     result.canvas->SaveRaw(raw_path.string(), scalar);
-    result.canvas->SaveImage(image_path.string(), scalar, 2.4f);
+    result.canvas->SaveImage(image_path.string(), scalar);
 }
 
 void RenderDefault()
@@ -201,7 +201,7 @@ void RenderDefault()
     auto result    = ExecuteRenderingMultiThread(scene, *camera, {size, size}, ssp, thd);
     akFloat scalar = 1.f / result.ssp;
     result.canvas->SaveRaw("d:/test2.raw.bin", scalar);
-    result.canvas->SaveImage("d:/test2.png", scalar, 2.4f);
+    result.canvas->SaveImage("d:/test2.png", scalar);
     //*/
 }
 

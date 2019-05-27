@@ -2,6 +2,7 @@
 #include "akane/math/float_type.h"
 #include "akane/math/vector.h"
 #include "akane/math/math.h"
+#include "akane/color.h"
 #include <array>
 
 namespace akane
@@ -41,24 +42,5 @@ namespace akane
     {
         auto f = [&](akFloat x) { return pow(x, 1.f / gamma); };
         return Spectrum{f(s[0]), f(s[1]), f(s[2])};
-    }
-
-    inline Spectrum ToneMap_Reinhard(const Spectrum& s)
-    {
-        constexpr akFloat middle_gray = 1.f;
-        auto color                    = s * middle_gray;
-
-        return color / (1.f + color);
-    }
-
-    inline Spectrum ToneMap_Aces(const Spectrum& s)
-    {
-        constexpr float a = 2.51f;
-        constexpr float b = 0.03f;
-        constexpr float c = 2.43f;
-        constexpr float d = 0.59f;
-        constexpr float e = 0.14f;
-
-        return (s * (a * s + b)) / (s * (c * s + d) + e);
     }
 } // namespace akane

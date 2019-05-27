@@ -263,7 +263,7 @@ namespace akane
         // copy normal indices if presented
         if (!geom_desc.normal_indices.empty())
         {
-            //AKANE_REQUIRE(geom_desc.normal_indices.size() == triangle_count);
+            // AKANE_REQUIRE(geom_desc.normal_indices.size() == triangle_count);
 
             geometry.normal_indices = std::make_unique<uint32_t[]>(3 * triangle_count + 1);
 
@@ -281,7 +281,7 @@ namespace akane
         // copy uv indices if presented
         if (!geom_desc.uv_indices.empty())
         {
-            //AKANE_REQUIRE(geom_desc.uv_indices.size() == triangle_count);
+            // AKANE_REQUIRE(geom_desc.uv_indices.size() == triangle_count);
 
             geometry.uv_indices = std::make_unique<uint32_t[]>(3 * triangle_count + 1);
 
@@ -334,22 +334,25 @@ namespace akane
         }
     }
 
-    void EmbreeScene::AddGround(akFloat z, const Spectrum& albedo)
+    void EmbreeScene::AddGround(akFloat z, Texture3D::SharedPtr tex)
     {
         auto mesh      = std::make_shared<MeshDesc>();
-        mesh->vertices = {{-1e5, -1e5, z}, {-1e5, 1e5, z}, {1e5, 1e5, z}, {1e5, 1e-5, z}};
+        mesh->vertices = {{-1e5f, -1e5f, z}, {-1e5f, 1e5f, z}, {1e5f, 1e5f, z}, {1e5f, -1e5f, z}};
+        mesh->uv       = {{0.f, 0.f}, {0.f, 1.f}, {1.f, 1.f}, {1.f, 0.f}};
 
-        auto material  = std::make_shared<MaterialDesc>();
-        material->name = "_ak_ground";
-        material->kd   = albedo;
+        auto material             = std::make_shared<MaterialDesc>();
+        material->name            = "_ak_ground";
+        material->kd              = {1.f, 1.f, 1.f};
+        material->diffuse_texture = tex;
 
         auto geometry              = std::make_shared<GeometryDesc>();
         geometry->name             = "_ak_ground";
         geometry->triangle_indices = {{0, 2, 1}, {0, 3, 2}};
+        geometry->uv_indices       = {{0, 2, 1}, {0, 3, 2}};
         geometry->material         = material;
 
-		mesh->geomtries.push_back(geometry);
-		AddMesh(mesh);
+        mesh->geomtries.push_back(geometry);
+        AddMesh(mesh);
     }
     void EmbreeScene::AddTriangleLight(const Point3f& v0, const Point3f& v1, const Point3f& v2,
                                        const Spectrum& albedo)

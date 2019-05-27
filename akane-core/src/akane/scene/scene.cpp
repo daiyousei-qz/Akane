@@ -22,35 +22,6 @@ namespace akane
 		light_dist_.Reset(begin, end);
 	}
 
-    Texture* Scene::CreateTexture_Solid(const Spectrum& albedo)
-    {
-        return Construct<SolidTexture>(albedo);
-    }
-    Texture* Scene::CreateTexture_Image(const Spectrum& albedo, Image::SharedPtr img)
-    {
-        return Construct<ImageTexture>(albedo, std::move(img));
-    }
-    Texture* Scene::CreateTexture_ImageOrSolid(const Spectrum& albedo, Image::SharedPtr img)
-    {
-        if (img != nullptr)
-        {
-            return Construct<ImageTexture>(albedo, std::move(img));
-        }
-        else
-        {
-            return Construct<SolidTexture>(albedo);
-        }
-    }
-    Texture* Scene::CreateTexture_Checkerboard(const Texture* t0, const Texture* t1)
-    {
-        return Construct<CheckerboardTexture>(t0, t1);
-    }
-
-    Material* Scene::CreateMaterial_Lambertian(const Texture* t)
-    {
-        return Construct<Lambertian>(t);
-    }
-
     //
     //
 
@@ -112,8 +83,8 @@ namespace akane
         material->roughness_        = desc.roughness;
         material->eta_in_           = desc.eta;
         material->eta_out_          = 1.f;
-        material->texture_diffuse_  = desc.diffuse_texture;
-        material->texture_specular_ = desc.specular_texture;
+        material->tex_diffuse_  = desc.diffuse_texture;
+        material->tex_specular_ = desc.specular_texture;
 
 		edit_materials_.push_back(material);
 		return material;
