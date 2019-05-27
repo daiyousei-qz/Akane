@@ -1,6 +1,8 @@
 #include "scene_edit.h"
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 namespace akane::gui
 {
@@ -37,8 +39,8 @@ namespace akane::gui
 
         // update window
         UpdateStatusControl();
-        UpdateImageControl();
-        UpdateCameraControl();
+        UpdateRendererEditor();
+        UpdateCameraEditor();
         UpdateMaterialEditor();
 
         if (!EqualState(MutatingState, CurrentState))
@@ -60,46 +62,44 @@ namespace akane::gui
         ImGui::Text("Renderer average %.3f ms/frame (%.1f FPS)", AvgFrameTime,
                     1000.f / AvgFrameTime);
 
+        ImGui::Text("Culmulative Sample: %d", CurrentSpp);
+
         ImGui::End();
     }
-    void SceneEditWindow::UpdateImageControl()
+    void SceneEditWindow::UpdateRenderingEditor()
     {
         ImScoped::Window window{"Renderer"};
 
-        int resolution[2]{MutatingState.Resolution.X(), MutatingState.Resolution.Y()};
-        ImGui::InputInt2("Resolution", resolution);
+        ImGui::InputInt2("Resolution", &ResolutionInput.X(), &ResolutionInput.Y());
         if (ImGui::Button("Change Resolution"))
         {
-            if (resolution[0] >= 100 && resolution[1] >= 100)
+            if (ResolutionInput[0] >= 100 && ResolutionInput[1] >= 100)
             {
                 // TODO: support resolution change
-                MutatingState.Resolution = {resolution[0], resolution[1]};
-
-                DisplayTex =
-                    AllocateTexture(MutatingState.Resolution.X(), MutatingState.Resolution.Y());
+                MutatingState.Resolution = ResolutionInput;
             }
         }
 
         ImGui::SliderFloat("Display Scale", &DisplayScale, .5f, 3.f);
 
-        bool c0_selected = MutatingState.Strategy == PreviewIntegrator::DirectIntersection;
-        bool c1_selected = MutatingState.Strategy == PreviewIntegrator::PathTracing;
+        bool c0_selected = MutatingState.IntegrationMode == PreviewIntegrator::DirectIntersection;
+        bool c1_selected = MutatingState.IntegrationMode == PreviewIntegrator::PathTracing;
         if (ImGui::BeginCombo("Integrator", "NormalMap"))
         {
             if (ImGui::Selectable("NormalMap", &c0_selected))
             {
-                MutatingState.Strategy = PreviewIntegrator::DirectIntersection;
+                MutatingState.IntegrationMode = PreviewIntegrator::DirectIntersection;
             }
             if (ImGui::Selectable("PathTracing", &c1_selected))
             {
-                MutatingState.Strategy = PreviewIntegrator::PathTracing;
+                MutatingState.IntegrationMode = PreviewIntegrator::PathTracing;
             }
             ImGui::EndCombo();
         }
 
         ImGui::End();
     }
-    void SceneEditWindow::UpdateCameraControl()
+    void SceneEditWindow::UpdateCameraEditor()
     {
         ImScoped::Window window{"Camera"};
 
@@ -223,7 +223,7 @@ namespace akane::gui
     }
     void SceneEditWindow::UpdateMaterialEditor()
     {
-        ImScoped::Window window{"Material Edit"};
+        ImScoped::Window window{"Material"};
 
         bool scene_changed = false;
         for (auto material : EditableMaterials)
@@ -266,6 +266,11 @@ namespace akane::gui
         {
             std::unique_lock<std::mutex> lock{DisplayUpdatingLock};
 
+            if (DisplayTex->Width() != DisplayCanvas->Width() || DisplayTex->Height() != DisplayCanvas->Height())
+            {
+                DisplayTex = AllocateTexture(DisplayCanvas->Width(), DisplayCanvas->Height());
+            }
+
             DisplayTex->Update([&](void* p, int row_pitch) {
                 auto buf = reinterpret_cast<uint32_t*>(p);
 
@@ -290,5 +295,87 @@ namespace akane::gui
         ImScoped::Window window{"Preview"};
         ImGui::Image(DisplayTex->Id(), {DisplayScale * CurrentState.Resolution.X(),
                                         DisplayScale * CurrentState.Resolution.Y()});
+    }
+
+    void SceneEditWindow::RenderInBackground()
+    {
+        int spp = 0;
+        RenderingState last_state{};
+        Canvas::SharedPtr canvas =
+            std::make_shared<Canvas>(last_state.Resolution.X(), last_state.Resolution.Y());
+
+        std::function<bool()> activity_query = [&] { return IsActive; };
+
+        while (IsActive)
+        {
+            // fetch latest rendering parameters
+            RenderingState state;
+            {
+                std::unique_lock<std::mutex> lock{ SceneUpdatingLock };
+                state = CurrentState;
+            }
+
+            // detect if canvas has to be altered
+            bool canvas_replaced = false;
+            if (!EqualState(last_state, state))
+            {
+                spp = 0;
+
+                if (last_state.Resolution != state.Resolution)
+                {
+                    canvas =
+                        std::make_shared<Canvas>(state.Resolution.X(), state.Resolution.Y());
+                    canvas_replaced = true;
+                }
+            }
+
+            // render a frame
+            auto camera = CreatePinholeCamera(state.CameraOrigin, state.CameraForward,
+                state.CameraUpward, state.CameraFov);
+            auto& integrator = state.IntegrationMode == PreviewIntegrator::DirectIntersection
+                ? *DirectIntersectionIntegrator
+                : *PathTracingIntegrator;
+
+            auto t0 = std::chrono::high_resolution_clock::now();
+            if (spp == 0)
+            {
+                RenderFrame<true>(*canvas, *sampler, integrator, scene, *camera, 1, &activity_query);
+            }
+            else
+            {
+                RenderFrame<false>(*canvas, *sampler, integrator, scene, *camera, 1, &activity_query);
+            }
+            if (!IsActive)
+            {
+                return;
+            }
+            auto t1 = std::chrono::high_resolution_clock::now();
+
+            float frame_time =
+                std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+            frame_time /= 1000.f;
+
+            spp += 1;
+
+            // update display buffer
+            {
+                std::unique_lock<std::mutex> lock{ DisplayUpdatingLock };
+
+                if (canvas_replaced)
+                {
+                    DisplayCanvas =
+                        std::make_shared<Canvas>(state.Resolution.X(), state.Resolution.Y());
+                }
+
+                CurrentSpp = spp;
+                AvgFrameTime = (1.f - kFrameTimeUpdateRate) * AvgFrameTime +
+                    kFrameTimeUpdateRate * frame_time;
+
+                DisplayCanvas->Set(*canvas);
+            }
+
+            // store state
+            last_state = state;
+        }
     }
 } // namespace akane::gui

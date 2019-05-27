@@ -12,33 +12,6 @@
 
 namespace akane
 {
-    inline void ExecuteRenderIncremental(Canvas& canvas, Sampler& sampler, const Scene& scene,
-                                         const Camera& camera, Point2i resolution,
-                                         int sample_per_pixel, bool render_normal = true)
-    {
-        RenderingContext ctx;
-        Integrator::Ptr integrator =
-            render_normal ? CreateDirectIntersectionIntegrator() : CreatePathTracingIntegrator();
-
-        for (int y = 0; y < resolution.Y(); ++y)
-        {
-            for (int x = 0; x < resolution.X(); ++x)
-            {
-                Spectrum acc = kFloatZero;
-                for (int i = 0; i < sample_per_pixel; ++i)
-                {
-                    auto ray      = camera.SpawnRay(resolution, {x, y}, sampler.Get2D());
-                    auto radiance = integrator->Li(ctx, sampler, scene, ray);
-
-                    acc += radiance;
-                    ctx.workspace.Clear();
-                }
-
-                canvas.Append(acc[0], acc[1], acc[2], x, y);
-            }
-        }
-    }
-
     struct RenderResult
     {
         int ssp                  = 0;

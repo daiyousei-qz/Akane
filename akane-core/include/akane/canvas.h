@@ -28,19 +28,34 @@ namespace akane
             data_.resize(width * height * kCanvasChannel, 0.);
         }
 
-        int Width() const noexcept { return width_; }
-        int Height() const noexcept { return height_; }
+        int Width() const noexcept
+        {
+            return width_;
+        }
+        int Height() const noexcept
+        {
+            return height_;
+        }
 
-		void Set(const Canvas& other) {
-			std::copy(other.data_.begin(), other.data_.end(), data_.begin());
-		}
-		void Append(const Canvas& other)
-		{
-			for (int i = 0; i < data_.size(); ++i)
-			{
-				data_[i] += other.data_[i];
-			}
-		}
+        void Set(const Canvas& other)
+        {
+            std::copy(other.data_.begin(), other.data_.end(), data_.begin());
+        }
+        void Append(const Canvas& other)
+        {
+            for (int i = 0; i < data_.size(); ++i)
+            {
+                data_[i] += other.data_[i];
+            }
+        }
+
+        void Set(double rr, double gg, double bb, int x, int y)
+        {
+            auto index       = y * width_ * kCanvasChannel + x * kCanvasChannel;
+            data_[index]     = rr;
+            data_[index + 1] = gg;
+            data_[index + 2] = bb;
+        }
         void Append(double rr, double gg, double bb, int x, int y)
         {
             auto index = y * width_ * kCanvasChannel + x * kCanvasChannel;
