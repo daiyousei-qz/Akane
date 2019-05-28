@@ -91,7 +91,7 @@ namespace akane
         akFloat alpha_;
     };
 
-    // Cook–Torrance
+    // Cook Torrance
     class MicrofacetReflection : public Bsdf
     {
     public:

@@ -83,20 +83,23 @@ namespace akane
                 akFloat light_choice_pdf;
                 auto light = scene.SampleLight(sampler.Get1D(), light_choice_pdf);
 
-                auto vtest = light->SampleLi(sampler.Get2D(), isect);
-                if (vtest.Test(scene, ctx.workspace))
+                if (light)
                 {
-                    auto shadow_ray = vtest.ShadowRay();
-                    auto wi         = bsdf_coord.WorldToLocal(shadow_ray.d);
+                    auto vtest = light->SampleLi(sampler.Get2D(), isect);
+                    if (vtest.Test(scene, ctx.workspace))
+                    {
+                        auto shadow_ray = vtest.ShadowRay();
+                        auto wi = bsdf_coord.WorldToLocal(shadow_ray.d);
 
-                    auto light_pdf = light_choice_pdf * vtest.Pdf();
-                    auto bsdf_pdf  = bsdf.Pdf(wo, wi);
+                        auto light_pdf = light_choice_pdf * vtest.Pdf();
+                        auto bsdf_pdf = bsdf.Pdf(wo, wi);
 
-                    // direct radiance from light source
-                    auto f  = bsdf.Eval(wo, wi);
-                    auto ld = light->Eval(shadow_ray) / light_pdf;
+                        // direct radiance from light source
+                        auto f = bsdf.Eval(wo, wi);
+                        auto ld = light->Eval(shadow_ray) / light_pdf;
 
-                    total_ld += PowerHeuristic(light_pdf, bsdf_pdf) * f * ld * AbsCosTheta(wi);
+                        total_ld += PowerHeuristic(light_pdf, bsdf_pdf) * f * ld * AbsCosTheta(wi);
+                    }
                 }
             }
 

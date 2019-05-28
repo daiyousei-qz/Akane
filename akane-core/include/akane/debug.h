@@ -41,7 +41,15 @@ namespace akane
                       Transform::CreateScale(r).Move(center));
     }
 
-    inline Camera::Ptr CreateScene_Sphere(EmbreeScene& scene)
+    struct CameraSpec
+    {
+        Point3f origin;
+        Vec3f forward;
+        Vec3f upward;
+        Point2f fov;
+    };
+
+    inline CameraSpec CreateScene_Sphere(EmbreeScene& scene)
     {
         auto mat0 = MakeLambertianMaterial({.2f, .3f, .4f});
         auto mat1 = MakeMirrorMaterial({1.f, 1.f, 1.f}, 0.f, 10);
@@ -52,16 +60,16 @@ namespace akane
         AddSphere(scene, {0, -2, 1}, 1, mat2);
         AddSphere(scene, {0, 0, 1}, 1, mat0);
 
-        scene.AddGround(
-            0, std::make_shared<CheckerboardTexture>(Vec3f{.2f, .2f, .2f}, Vec3f{.8f, .8f, .8f}, 1e5f));
+        scene.AddGround(0, std::make_shared<CheckerboardTexture>(Vec3f{.2f, .2f, .2f},
+                                                                 Vec3f{.8f, .8f, .8f}, 1e5f));
         scene.AddTriangleLight({-1, -1, 3}, {-1, 1, 3}, {1, 1, 3}, {1, 1, 1});
         scene.AddTriangleLight({-1, -1, 3}, {1, 1, 3}, {1, -1, 3}, {1, 1, 1});
         scene.CreateGlobalLight_Skybox({.5, .7, 1.});
 
-        return CreatePinholeCamera({-5, 0, 1}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
+        return CameraSpec{{-6, 0, 1}, {1, 0, 0}, {0, 0, 1}, {.5f, .5f}};
     }
 
-    inline Camera::Ptr CreateScene_Bunny(EmbreeScene& scene)
+    inline CameraSpec CreateScene_Bunny(EmbreeScene& scene)
     {
         auto mesh                                    = LoadMesh("d:/scene/bunny2/bunny2.obj");
         mesh->geomtries.front()->material->roughness = .6f;
@@ -71,10 +79,10 @@ namespace akane
         scene.AddGround(-3, std::make_shared<SolidTexture>(Vec3f{.4f, .4f, .4f}));
         scene.AddTriangleLight({-1, -1, 10}, {-1, 1, 10}, {1, 1, 10}, {1, 1, 1});
         scene.CreateGlobalLight_Skybox({.5, .7, 1.});
-        return CreatePinholeCamera({-8, 0, 0}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
+        return CameraSpec{ {-8, 0, 0}, {1, 0, 0}, {0, 0, 1}, {.5f, .5f} };
     }
 
-    inline Camera::Ptr CreateScene_CornellBox(EmbreeScene& scene)
+    inline CameraSpec CreateScene_CornellBox(EmbreeScene& scene)
     {
         // cornell box
         {
@@ -92,10 +100,10 @@ namespace akane
             scene.AddMesh(mesh, bunny_transform);
         }
 
-        return CreatePinholeCamera({-2.3, 0, 0}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
+        return CameraSpec{ {-3, 0, 0}, {1, 0, 0}, {0, 0, 1}, {.5f, .5f} };
     }
 
-    inline Camera::Ptr CreateScene_MC(EmbreeScene& scene)
+    inline CameraSpec CreateScene_MC(EmbreeScene& scene)
     {
         auto mesh = LoadMesh("d:/scene/vk/vokselia_spawn.obj");
         scene.AddMesh(mesh, Transform::CreateRotateX(-kPI / 2).RotateZ(kPI));
@@ -103,20 +111,20 @@ namespace akane
         scene.AddGround(-3, std::make_shared<SolidTexture>(Vec3f{.7f, .7f, .7f}));
         scene.CreateGlobalLight_Skybox({.5, .7, 1.});
 
-        return CreatePinholeCamera({-.5, 0, .3}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f});
+        return CameraSpec{ {-.5, 0, .3}, {1, 0, 0}, {0, 0, 1}, {.6f, .6f} };
     }
 
-    inline Camera::Ptr CreateScene_LivingRoom(EmbreeScene& scene)
+    inline CameraSpec CreateScene_LivingRoom(EmbreeScene& scene)
     {
         auto mesh = LoadMesh("d:/scene/livingroom/living_room.obj");
         scene.AddMesh(mesh, Transform::CreateRotateX(-kPI / 2).RotateZ(kPI));
 
-        return CreatePinholeCamera({-1.92, 5.43, 1}, {0.60, -0.79, 0}, {0, 0, 1}, {.5f, .5f});
+        return CameraSpec{ {-1.92, 5.43, 1}, {0.60, -0.79, 0}, {0, 0, 1}, {.5f, .5f} };
         // return CreatePinholeCamera({ -2.243, 5.534, 1 }, { 0.633, -0.774, 0 }, { 0, 0, 1 }, {
         // .5f, .5f });
     }
 
-    inline Camera::Ptr CreateScene_Default(EmbreeScene& scene)
+    inline CameraSpec CreateScene_Default(EmbreeScene& scene)
     {
         return CreateScene_Sphere(scene);
     }

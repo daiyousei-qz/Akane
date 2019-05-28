@@ -15,11 +15,11 @@ namespace akane
 			parts_.push_back(body);
 		}
 
-        bool Intersect(const Ray& ray, akFloat t_min, akFloat t_max,
+        bool Intersect(const Ray& ray, float t_min, float t_max,
                        IntersectionInfo& info) const override
         {
             bool any_hit = false;
-            akFloat t    = t_max;
+            float t    = t_max;
 
             IntersectionInfo info_buf;
             for (auto child : parts_)

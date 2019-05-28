@@ -190,7 +190,9 @@ void RenderDefault()
     //*/
     EmbreeScene scene;
 
-    auto camera = CreateScene_LivingRoom(scene);
+    auto camera_spec = CreateScene_LivingRoom(scene);
+    auto camera = CreatePinholeCamera(camera_spec.origin, camera_spec.forward, camera_spec.upward,
+                                      camera_spec.fov);
     scene.Commit();
 
     int size = 400;

@@ -84,6 +84,7 @@ namespace akane
 		LightVec global_lights_;
 		LightVec lights_;
 
-		std::vector<GenericMaterial*> edit_materials_;
+        int edit_material_counter_ = 0;
+        std::unordered_map<std::string, GenericMaterial*> edit_materials_;
     };
 } // namespace akane

@@ -9,6 +9,7 @@ namespace akane
     {
     public:
         using Ptr = std::unique_ptr<Material>;
+        using SharedPtr = std::shared_ptr<Material>;
 
 		// compute bsdf allocated at workspace given
         virtual const Bsdf* ComputeBsdf(Workspace& workspace,

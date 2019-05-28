@@ -11,17 +11,16 @@ namespace akane::gui
         // load scene
         sampler = CreateRandomSampler(rand());
 
-        CreateScene_Default(scene);
+        auto camera                = CreateScene_Default(scene);
+        CurrentState.CameraOrigin  = camera.origin;
+        CurrentState.CameraForward = camera.forward;
+        CurrentState.CameraUpward  = camera.upward;
+        CurrentState.CameraFov     = camera.fov.X();
+
         scene.Commit();
 
-        EditableMaterials = scene.GetEditMaterials();
-
         // create
-        auto resolution = CurrentState.Resolution;
-        DisplayTex      = AllocateTexture(resolution.X(), resolution.Y());
-
-        CurrentSpp    = 0;
-        DisplayCanvas = std::make_shared<Canvas>(resolution.X(), resolution.Y());
+        DisplayTex      = AllocateTexture(kDefaultResolution.X(), kDefaultResolution.Y());
 
         // start background renderer
         RenderingThd = std::thread([this] { this->RenderInBackground(); });
@@ -29,79 +28,63 @@ namespace akane::gui
 
     void SceneEditWindow::Update()
     {
-        // backup state
-        MutatingState = CurrentState;
+        // update editors
+        RenderingState state = CurrentState;
+        UpdateRenderingEditor(state);
+        UpdateCameraEditor(state);
+        UpdateMaterialEditor(state);
+        UpdateCameraAction(state);
+
+        if (!EqualState(state, CurrentState))
+        {
+            std::unique_lock<std::mutex> lock{SceneUpdatingLock};
+            CurrentState = state;
+        }
 
         // update window
         UpdateStatusControl();
-        UpdateRenderingEditor();
-        UpdateCameraEditor();
-        UpdateMaterialEditor();
-
-        if (!EqualState(MutatingState, CurrentState))
-        {
-            std::unique_lock<std::mutex> lock{SceneUpdatingLock};
-            CurrentState = MutatingState;
-        }
 
         // render preview
         UpdateRenderPreview();
     }
-
-    void SceneEditWindow::UpdateStatusControl()
+    
+    void SceneEditWindow::UpdateRenderingEditor(RenderingState& state)
     {
-        ImGui::Begin("Status");
-
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-                    1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::Text("Renderer average %.3f ms/frame (%.1f FPS)", AvgFrameTime,
-                    1000.f / AvgFrameTime);
-
-        ImGui::Text("Culmulative Sample: %d", CurrentSpp);
-
-        ImGui::End();
-    }
-    void SceneEditWindow::UpdateRenderingEditor()
-    {
-        ImScoped::Window window{"Renderer"};
+        auto window = ImScoped::Window{"Renderer"};
 
         ImGui::InputInt2("Resolution", &ResolutionInput.X(), &ResolutionInput.Y());
         if (ImGui::Button("Change Resolution"))
         {
             if (ResolutionInput[0] >= 100 && ResolutionInput[1] >= 100)
             {
-                // TODO: support resolution change
-                MutatingState.Resolution = ResolutionInput;
+                state.Resolution = ResolutionInput;
             }
         }
 
         ImGui::SliderFloat("Display Scale", &DisplayScale, .5f, 3.f);
 
-        bool c0_selected = MutatingState.IntegrationMode == PreviewIntegrator::DirectIntersection;
-        bool c1_selected = MutatingState.IntegrationMode == PreviewIntegrator::PathTracing;
-        if (ImGui::BeginCombo("Integrator", "NormalMap"))
+        auto combo_preview = state.IntegrationMode == PreviewIntegrator::DirectIntersection
+                                 ? "NormalMap"
+                                 : "PathTracing";
+        if (auto combo = ImScoped::Combo{"Integrator", combo_preview})
         {
-            if (ImGui::Selectable("NormalMap", &c0_selected))
+            if (ImGui::Selectable("NormalMap"))
             {
-                MutatingState.IntegrationMode = PreviewIntegrator::DirectIntersection;
+                state.IntegrationMode = PreviewIntegrator::DirectIntersection;
             }
-            if (ImGui::Selectable("PathTracing", &c1_selected))
+            if (ImGui::Selectable("PathTracing"))
             {
-                MutatingState.IntegrationMode = PreviewIntegrator::PathTracing;
+                state.IntegrationMode = PreviewIntegrator::PathTracing;
             }
-            ImGui::EndCombo();
         }
-
-        ImGui::End();
     }
-    void SceneEditWindow::UpdateCameraEditor()
+    void SceneEditWindow::UpdateCameraEditor(RenderingState& state)
     {
-        ImScoped::Window window{"Camera"};
+        auto window = ImScoped::Window{"Camera"};
 
-        Vec3f camera_origin   = MutatingState.CameraOrigin;
-        Vec3f camera_forward  = MutatingState.CameraForward;
-        Vec3f camera_upward   = MutatingState.CameraUpward;
-        Vec3f camera_leftward = camera_forward.Cross(camera_upward);
+        Vec3f camera_origin  = state.CameraOrigin;
+        Vec3f camera_forward = state.CameraForward;
+        Vec3f camera_upward  = state.CameraUpward;
 
         ImGui::Text("Origin: (%f, %f, %f)", camera_origin.X(), camera_origin.Y(),
                     camera_origin.Z());
@@ -109,27 +92,71 @@ namespace akane::gui
                     camera_forward.Z());
         ImGui::Text("Upward: (%f, %f, %f)", camera_upward.X(), camera_upward.Y(),
                     camera_upward.Z());
+        ImGui::Separator();
 
-        auto camera_fov = MutatingState.CameraFov;
-        ImGui::SliderFloat("Fov X", &camera_fov.X(), 0.1f, 0.8f);
-        if (ImGui::InputFloat("Fov X input", &camera_fov.X(), 0.1f, 0.8f))
+        ImGui::SliderFloat("Fov", &state.CameraFov, 0.1f, 0.8f);
+        if (ImGui::InputFloat("Fov Input", &state.CameraFov))
         {
-            camera_fov.X() = clamp(camera_fov.X(), 0.1f, 0.8f);
-        }
-        ImGui::SliderFloat("Fov Y", &camera_fov.Y(), 0.1f, 0.8f);
-        if (ImGui::InputFloat("Fov Y input", &camera_fov.Y(), 0.1f, 0.8f))
-        {
-            camera_fov.Y() = clamp(camera_fov.Y(), 0.1f, 0.8f);
+            state.CameraFov = clamp(state.CameraFov, 0.1f, 0.8f);
         }
 
+        ImGui::SliderFloat("Move Rate", &CameraMoveRatePerSec, 0.f, 2.f);
+        ImGui::SliderFloat("Rotate Rate", &CameraRotateRatePerSec, 0.f, 2.f);
+    }
+    void SceneEditWindow::UpdateMaterialEditor(RenderingState& state)
+    {
+        ImScoped::Window window{"Material"};
+
+        bool scene_changed = false;
+        for (const auto& [name, material] : scene.GetEditMaterials())
+        {
+            if (ImGui::TreeNode(name.c_str()))
+            {
+                if (ImGui::ColorEdit3("Kd", material->kd_.data.data()))
+                {
+                    scene_changed = true;
+                }
+                if (ImGui::ColorEdit3("Ks", material->ks_.data.data()))
+                {
+                    scene_changed = true;
+                }
+                if (ImGui::ColorEdit3("Tr", material->tr_.data.data()))
+                {
+                    scene_changed = true;
+                }
+                if (ImGui::SliderFloat("roughness", &material->roughness_, 0.f, 1.f))
+                {
+                    scene_changed = true;
+                }
+                if (ImGui::SliderFloat("eta", &material->eta_in_, 0.5f, 10.f))
+                {
+                    scene_changed = true;
+                }
+
+                ImGui::TreePop();
+                ImGui::Separator();
+            }
+        }
+
+        if (scene_changed)
+        {
+            state.Version += 1;
+        }
+    }
+    void SceneEditWindow::UpdateCameraAction(RenderingState& state)
+    {
+        Vec3f camera_origin   = state.CameraOrigin;
+        Vec3f camera_forward  = state.CameraForward;
+        Vec3f camera_upward   = state.CameraUpward;
+        Vec3f camera_leftward = camera_forward.Cross(camera_upward);
+
+        // handle camera movement
         constexpr int kKeyCode_Q = 81;
         constexpr int kKeyCode_W = 87;
         constexpr int kKeyCode_E = 69;
         constexpr int kKeyCode_A = 65;
         constexpr int kKeyCode_S = 83;
         constexpr int kKeyCode_D = 68;
-
-        ImGui::SliderFloat("move rate", &CameraMoveRatePerSec, 0.f, 2.f);
 
         float camera_move_rate     = CameraMoveRatePerSec * 2.f / ImGui::GetIO().Framerate;
         float camera_move_forward  = 0.f;
@@ -161,14 +188,17 @@ namespace akane::gui
             camera_move_leftward += camera_move_rate;
         }
 
+        state.CameraOrigin = camera_origin + camera_forward * camera_move_forward +
+                             camera_upward * camera_move_upward +
+                             camera_leftward * camera_move_leftward;
+
+        // handle camera rotation
         constexpr int kKeyCode_ArrowUp    = 38;
         constexpr int kKeyCode_ArrowDown  = 40;
         constexpr int kKeyCode_ArrowLeft  = 37;
         constexpr int kKeyCode_ArrowRight = 39;
         constexpr int kKeyCode_Comma      = 188;
         constexpr int kKeyCode_Period     = 190;
-
-        ImGui::SliderFloat("rotate rate", &CameraRotateRatePerSec, 0.f, 2.f);
 
         float camera_rotate_rate       = CameraRotateRatePerSec / ImGui::GetIO().Framerate;
         float camera_rotate_horizontal = 0.f;
@@ -199,10 +229,6 @@ namespace akane::gui
             camera_rotate_view -= camera_rotate_rate;
         }
 
-        MutatingState.CameraOrigin = camera_origin + camera_forward * camera_move_forward +
-                                     camera_upward * camera_move_upward +
-                                     camera_leftward * camera_move_leftward;
-
         // LocalCoordinateTransform camera_coord(camera_forward, camera_leftward, camera_upward);
         auto camera_coord            = Transform(camera_forward, camera_leftward, camera_upward);
         auto camera_rotate_transform = Transform::Identity()
@@ -213,55 +239,31 @@ namespace akane::gui
             camera_coord.InverseLinear(camera_rotate_transform.ApplyLinear(kDefaultCameraForward));
         auto target_upward =
             camera_coord.InverseLinear(camera_rotate_transform.ApplyLinear(kDefaultCameraUpward));
-        MutatingState.CameraForward = target_forward;
-        MutatingState.CameraUpward  = target_upward;
+        state.CameraForward = target_forward;
+        state.CameraUpward  = target_upward;
     }
-    void SceneEditWindow::UpdateMaterialEditor()
+   
+    void SceneEditWindow::UpdateStatusControl()
     {
-        ImScoped::Window window{"Material"};
+        ImGui::Begin("Status");
 
-        bool scene_changed = false;
-        for (auto material : EditableMaterials)
-        {
-            if (ImGui::TreeNode(material->name_.c_str()))
-            {
-                if (ImGui::ColorEdit3("Kd", material->kd_.data.data()))
-                {
-                    scene_changed = true;
-                }
-                if (ImGui::ColorEdit3("Ks", material->ks_.data.data()))
-                {
-                    scene_changed = true;
-                }
-                if (ImGui::ColorEdit3("Tr", material->tr_.data.data()))
-                {
-                    scene_changed = true;
-                }
-                if (ImGui::SliderFloat("roughness", &material->roughness_, 0.f, 1.f))
-                {
-                    scene_changed = true;
-                }
-                if (ImGui::SliderFloat("eta", &material->eta_in_, 0.5f, 10.f))
-                {
-                    scene_changed = true;
-                }
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+            1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        ImGui::Text("Renderer average %.3f ms/frame (%.1f FPS)", AvgFrameTime,
+            1000.f / AvgFrameTime);
 
-                ImGui::TreePop();
-                ImGui::Separator();
-            }
-        }
+        ImGui::Text("Culmulative Sample: %d", CurrentSpp);
 
-        if (scene_changed)
-        {
-            MutatingState.Version += 1;
-        }
+        ImGui::End();
     }
     void SceneEditWindow::UpdateRenderPreview()
     {
+        if (DisplayCanvas != nullptr)
         {
             std::unique_lock<std::mutex> lock{DisplayUpdatingLock};
 
-            if (DisplayTex->Width() != DisplayCanvas->Width() || DisplayTex->Height() != DisplayCanvas->Height())
+            if (DisplayTex->Width() != DisplayCanvas->Width() ||
+                DisplayTex->Height() != DisplayCanvas->Height())
             {
                 DisplayTex = AllocateTexture(DisplayCanvas->Width(), DisplayCanvas->Height());
             }
@@ -306,7 +308,7 @@ namespace akane::gui
             // fetch latest rendering parameters
             RenderingState state;
             {
-                std::unique_lock<std::mutex> lock{ SceneUpdatingLock };
+                std::unique_lock<std::mutex> lock{SceneUpdatingLock};
                 state = CurrentState;
             }
 
@@ -318,27 +320,30 @@ namespace akane::gui
 
                 if (last_state.Resolution != state.Resolution)
                 {
-                    canvas =
-                        std::make_shared<Canvas>(state.Resolution.X(), state.Resolution.Y());
+                    canvas = std::make_shared<Canvas>(state.Resolution.X(), state.Resolution.Y());
                     canvas_replaced = true;
                 }
             }
 
             // render a frame
-            auto camera = CreatePinholeCamera(state.CameraOrigin, state.CameraForward,
-                state.CameraUpward, state.CameraFov);
+            auto aspect_ratio =
+                static_cast<float>(state.Resolution[1]) / static_cast<float>(state.Resolution[0]);
+            auto camera      = CreatePinholeCamera(state.CameraOrigin, state.CameraForward,
+                                              state.CameraUpward, state.CameraFov, aspect_ratio);
             auto& integrator = state.IntegrationMode == PreviewIntegrator::DirectIntersection
-                ? *DirectIntersectionIntegrator
-                : *PathTracingIntegrator;
+                                   ? *DirectIntersectionIntegrator
+                                   : *PathTracingIntegrator;
 
             auto t0 = std::chrono::high_resolution_clock::now();
             if (spp == 0)
             {
-                RenderFrame<true>(*canvas, *sampler, integrator, scene, *camera, 1, &activity_query);
+                RenderFrame<true>(*canvas, *sampler, integrator, scene, *camera, 1,
+                                  &activity_query);
             }
             else
             {
-                RenderFrame<false>(*canvas, *sampler, integrator, scene, *camera, 1, &activity_query);
+                RenderFrame<false>(*canvas, *sampler, integrator, scene, *camera, 1,
+                                   &activity_query);
             }
             if (!IsActive)
             {
@@ -354,17 +359,17 @@ namespace akane::gui
 
             // update display buffer
             {
-                std::unique_lock<std::mutex> lock{ DisplayUpdatingLock };
+                std::unique_lock<std::mutex> lock{DisplayUpdatingLock};
 
-                if (canvas_replaced)
+                if (canvas_replaced || DisplayCanvas == nullptr)
                 {
                     DisplayCanvas =
                         std::make_shared<Canvas>(state.Resolution.X(), state.Resolution.Y());
                 }
 
                 CurrentSpp = spp;
-                AvgFrameTime = (1.f - kFrameTimeUpdateRate) * AvgFrameTime +
-                    kFrameTimeUpdateRate * frame_time;
+                AvgFrameTime =
+                    (1.f - kFrameTimeUpdateRate) * AvgFrameTime + kFrameTimeUpdateRate * frame_time;
 
                 DisplayCanvas->Set(*canvas);
             }

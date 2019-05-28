@@ -100,8 +100,6 @@ namespace akane
         }
 
     public:
-        std::string name_;
-
         Spectrum kd_;
         Spectrum ks_;
         Spectrum tr_;

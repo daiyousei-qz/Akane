@@ -10,9 +10,13 @@
 
 namespace akane::gui
 {
-    constexpr float kFrameTimeUpdateRate  = 0.7f;
+    constexpr float kFrameTimeUpdateRate = 0.7f;
+    constexpr Point2i kDefaultResolution = {200, 200};
+
+    constexpr Vec3f kDefaultCameraOrigin  = {-5, 0, 1};
     constexpr Vec3f kDefaultCameraForward = {1, 0, 0};
     constexpr Vec3f kDefaultCameraUpward  = {0, 0, 1};
+    constexpr float kDefaultCameraFov     = .5f;
 
     enum class PreviewIntegrator
     {
@@ -25,13 +29,13 @@ namespace akane::gui
     {
         int Version = 0; // modify this to force re-render
 
-        PreviewIntegrator IntegrationMode = PreviewIntegrator::PathTracing;
+        PreviewIntegrator IntegrationMode = PreviewIntegrator::DirectIntersection;
 
-        Point2i Resolution    = {200, 200};
-        Point3f CameraOrigin  = {-5, 0, 1};
-        Point3f CameraForward = {1, 0, 0};
-        Point3f CameraUpward  = {0, 0, 1};
-        Point2f CameraFov     = {.6f, .6f};
+        Point2i Resolution  = kDefaultResolution;
+        Vec3f CameraOrigin  = kDefaultCameraOrigin;
+        Vec3f CameraForward = kDefaultCameraForward;
+        Vec3f CameraUpward  = kDefaultCameraUpward;
+        float CameraFov     = kDefaultCameraFov;
     };
 
     inline bool EqualState(const RenderingState& lhs, const RenderingState& rhs)
@@ -61,10 +65,12 @@ namespace akane::gui
 
     public:
         void UpdateStatusControl();
-        void UpdateRenderingEditor();
-        void UpdateCameraEditor();
-        void UpdateMaterialEditor();
         void UpdateRenderPreview();
+
+        void UpdateRenderingEditor(RenderingState& state);
+        void UpdateCameraEditor(RenderingState& state);
+        void UpdateMaterialEditor(RenderingState& state);
+        void UpdateCameraAction(RenderingState& state);
 
         void RenderInBackground();
 
@@ -73,25 +79,24 @@ namespace akane::gui
 
         //
         //
-        RenderingState MutatingState;
         RenderingState CurrentState;
 
         Point2i ResolutionInput = CurrentState.Resolution;
-        float DisplayScale = 400.f / CurrentState.Resolution.X();
+        float DisplayScale      = 400.f / CurrentState.Resolution.X();
 
         float CameraMoveRatePerSec   = 1.f;
         float CameraRotateRatePerSec = 1.f;
 
         //
         //
-        DynamicTexture::Ptr DisplayTex;
+        DynamicTexture::Ptr DisplayTex = nullptr;
 
         Integrator::Ptr DirectIntersectionIntegrator = CreateDirectIntersectionIntegrator();
         Integrator::Ptr PathTracingIntegrator        = CreatePathTracingIntegrator();
 
-        int CurrentSpp = 0;
-        float AvgFrameTime = 1.f; // millisec
-        Canvas::SharedPtr DisplayCanvas;
+        int CurrentSpp                  = 0;
+        float AvgFrameTime              = 1.f; // millisec
+        Canvas::SharedPtr DisplayCanvas = nullptr;
 
         std::mutex SceneUpdatingLock;
         std::mutex DisplayUpdatingLock;
@@ -102,6 +107,5 @@ namespace akane::gui
         //
         Sampler::Ptr sampler;
         EmbreeScene scene;
-        std::vector<GenericMaterial*> EditableMaterials;
     };
 } // namespace akane::gui
