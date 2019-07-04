@@ -66,6 +66,10 @@ namespace akane
         static constexpr size_t kNormalIndexStride   = 3;
         static constexpr size_t kUVIndexStride       = 3;
 
+        bool ContainAreaLight() const noexcept
+        {
+            return !area_lights.empty();
+        }
         auto GetAreaLight(int prim_id) const noexcept
         {
             return area_lights[prim_id];

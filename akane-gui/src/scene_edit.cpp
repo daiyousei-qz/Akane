@@ -11,16 +11,18 @@ namespace akane::gui
         // load scene
         sampler = CreateRandomSampler(rand());
 
-        auto camera                = CreateScene_Default(scene);
+        auto scene                 = std::make_shared<EmbreeScene>();
+        auto camera                = CreateScene_Default(*scene);
+        CurrentState.ThisScene     = scene;
         CurrentState.CameraOrigin  = camera.origin;
         CurrentState.CameraForward = camera.forward;
         CurrentState.CameraUpward  = camera.upward;
         CurrentState.CameraFov     = camera.fov.X();
 
-        scene.Commit();
+        scene->Commit();
 
         // create
-        DisplayTex      = AllocateTexture(kDefaultResolution.X(), kDefaultResolution.Y());
+        DisplayTex = AllocateTexture(kDefaultResolution.X(), kDefaultResolution.Y());
 
         // start background renderer
         RenderingThd = std::thread([this] { this->RenderInBackground(); });
@@ -33,6 +35,7 @@ namespace akane::gui
         UpdateRenderingEditor(state);
         UpdateCameraEditor(state);
         UpdateMaterialEditor(state);
+        //UpdateLightEditor(state);
         UpdateCameraAction(state);
 
         if (!EqualState(state, CurrentState))
@@ -47,7 +50,7 @@ namespace akane::gui
         // render preview
         UpdateRenderPreview();
     }
-    
+
     void SceneEditWindow::UpdateRenderingEditor(RenderingState& state)
     {
         auto window = ImScoped::Window{"Renderer"};
@@ -76,6 +79,45 @@ namespace akane::gui
             {
                 state.IntegrationMode = PreviewIntegrator::PathTracing;
             }
+        }
+
+        using SceneInitFunc    = std::function<CameraSpec(EmbreeScene&)>;
+        std::string scene_name = SceneName;
+        SceneInitFunc scene_init;
+        if (auto combo = ImScoped::Combo{"Scene", scene_name.c_str()})
+        {
+            static vector<tuple<string, SceneInitFunc>> kBuiltinSceneList = {
+                {"Sphere", CreateScene_Sphere},
+                {"Sphere2", CreateScene_Sphere2},
+                {"MC", CreateScene_MC},
+                {"CornellBox", CreateScene_CornellBox},
+                {"LivingRoom", CreateScene_LivingRoom},
+            };
+
+            for (const auto& [name, f] : kBuiltinSceneList)
+            {
+                if (ImGui::Selectable(name.c_str()))
+                {
+                    scene_name = name;
+                    scene_init = f;
+                }
+            }
+        }
+
+        if (!scene_name.empty() && SceneName != scene_name)
+        {
+            auto new_scene = std::make_shared<EmbreeScene>();
+            auto camera    = scene_init(*new_scene);
+            new_scene->Commit();
+
+            SceneName = scene_name;
+            scene     = new_scene;
+
+            state.ThisScene     = new_scene;
+            state.CameraOrigin  = camera.origin;
+            state.CameraForward = camera.forward;
+            state.CameraUpward  = camera.upward;
+            state.CameraFov     = camera.fov.X();
         }
     }
     void SceneEditWindow::UpdateCameraEditor(RenderingState& state)
@@ -108,7 +150,7 @@ namespace akane::gui
         ImScoped::Window window{"Material"};
 
         bool scene_changed = false;
-        for (const auto& [name, material] : scene.GetEditMaterials())
+        for (const auto& [name, material] : state.ThisScene->GetEditMaterials())
         {
             if (ImGui::TreeNode(name.c_str()))
             {
@@ -141,6 +183,42 @@ namespace akane::gui
         if (scene_changed)
         {
             state.Version += 1;
+        }
+    }
+    void SceneEditWindow::UpdateLightEditor(RenderingState& state)
+    {
+        const auto& light_vec = state.ThisScene->GetLights();
+        if (light_vec.empty())
+        {
+            return;
+        }
+
+        auto area_light0      = dynamic_cast<const AreaLight*>(const_cast<Light*>(light_vec[0]));
+        static float strength = 1.f;
+        float multiplier      = area_light0->albedo_.Max();
+        Vec3f color           = area_light0->albedo_ / multiplier;
+
+        auto window = ImScoped::Window{"Light"};
+
+        bool light_changed = false;
+        if (ImGui::ColorPicker3("Color", color.data.data()))
+        {
+            light_changed = true;
+        }
+        if (ImGui::SliderFloat("Strength", &strength, 0.1f, 5.f))
+        {
+            light_changed = true;
+        }
+
+        if (light_changed)
+        {
+            state.Version += 1;
+
+            for (auto light : light_vec)
+            {
+                auto area_light     = dynamic_cast<AreaLight*>(const_cast<Light*>(light));
+                area_light->albedo_ = color * multiplier * strength;
+            }
         }
     }
     void SceneEditWindow::UpdateCameraAction(RenderingState& state)
@@ -242,15 +320,15 @@ namespace akane::gui
         state.CameraForward = target_forward;
         state.CameraUpward  = target_upward;
     }
-   
+
     void SceneEditWindow::UpdateStatusControl()
     {
         ImGui::Begin("Status");
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-            1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+                    1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         ImGui::Text("Renderer average %.3f ms/frame (%.1f FPS)", AvgFrameTime,
-            1000.f / AvgFrameTime);
+                    1000.f / AvgFrameTime);
 
         ImGui::Text("Culmulative Sample: %d", CurrentSpp);
 
@@ -337,12 +415,12 @@ namespace akane::gui
             auto t0 = std::chrono::high_resolution_clock::now();
             if (spp == 0)
             {
-                RenderFrame<true>(*canvas, *sampler, integrator, scene, *camera, 1,
+                RenderFrame<true>(*canvas, *sampler, integrator, *state.ThisScene, *camera, 1,
                                   &activity_query);
             }
             else
             {
-                RenderFrame<false>(*canvas, *sampler, integrator, scene, *camera, 1,
+                RenderFrame<false>(*canvas, *sampler, integrator, *state.ThisScene, *camera, 1,
                                    &activity_query);
             }
             if (!IsActive)

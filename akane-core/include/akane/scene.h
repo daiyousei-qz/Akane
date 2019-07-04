@@ -25,8 +25,24 @@ namespace akane
     {
     public:
         using Ptr = std::unique_ptr<Scene>;
+        using SharedPtr = std::shared_ptr<Scene>;
 
 		virtual void Commit();
+
+        void ReloadLightDistribution()
+        {
+            std::vector<akFloat> powers;
+            for (auto light : lights_)
+            {
+                powers.push_back(light->Power());
+            }
+
+            auto begin = powers.data();
+            auto end = begin + powers.size();
+
+            light_power_ = std::accumulate(begin, end, 0.f);
+            light_dist_.Reset(begin, end);
+        }
 
         virtual bool Intersect(const Ray& ray, Workspace& workspace,
                                IntersectionInfo& isect) const = 0;

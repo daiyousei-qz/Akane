@@ -42,7 +42,7 @@ namespace akane
             }
         }
 
-        RTCRayHit InitRayHit(const Ray& ak_ray)
+        RTCRayHit CreateEmptyRayHit(const Ray& ak_ray)
         {
             RTCRayHit result;
             auto& ray = result.ray;
@@ -94,7 +94,7 @@ namespace akane
         RTCIntersectContext ctx;
         rtcInitIntersectContext(&ctx);
 
-        RTCRayHit ray_hit = InitRayHit(ray);
+        RTCRayHit ray_hit = CreateEmptyRayHit(ray);
 
         rtcIntersect1(scene_, &ctx, &ray_hit);
         auto geom_id = ray_hit.hit.geomID;
@@ -125,10 +125,6 @@ namespace akane
             {
                 isect.ns = isect.ng;
             }
-            if (isect.ns.Dot(ray.d) > 0)
-            {
-                // isect.ns = -isect.ns;
-            }
 
             // override uv
             if (geometry->HasVertexUV())
@@ -150,9 +146,9 @@ namespace akane
 
             isect.primitive = InstantiateTemporaryPrimitive(workspace, geom_id, prim_id);
 
-            if (!geometry->area_lights.empty())
+            if (geometry->ContainAreaLight())
             {
-                isect.area_light = geometry->area_lights.at(prim_id);
+                isect.area_light = geometry->GetAreaLight(prim_id);
             }
 
             isect.material = geometry->material;
@@ -338,7 +334,7 @@ namespace akane
     {
         auto mesh      = std::make_shared<MeshDesc>();
         mesh->vertices = {{-1e5f, -1e5f, z}, {-1e5f, 1e5f, z}, {1e5f, 1e5f, z}, {1e5f, -1e5f, z}};
-        mesh->uv       = {{0.f, 0.f}, {0.f, 1.f}, {1.f, 1.f}, {1.f, 0.f}};
+        mesh->uv       = {{-1e4f, -1e4f}, {-1e4f, 1e4f}, {1e4f, 1e4f}, {1e4f, -1e4f}};
 
         auto material             = std::make_shared<MaterialDesc>();
         material->name            = "_ak_ground";

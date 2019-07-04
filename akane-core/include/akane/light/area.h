@@ -22,7 +22,7 @@ namespace akane
             return primitive_;
         }
 
-    private:
+    public:
         Spectrum albedo_;
         const Primitive* primitive_;
     };

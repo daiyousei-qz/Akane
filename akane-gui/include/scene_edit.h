@@ -7,6 +7,7 @@
 #include "akane/debug.h"
 #include <mutex>
 #include <vector>
+#include <unordered_map>
 
 namespace akane::gui
 {
@@ -29,6 +30,8 @@ namespace akane::gui
     {
         int Version = 0; // modify this to force re-render
 
+        Scene::SharedPtr ThisScene = nullptr;
+
         PreviewIntegrator IntegrationMode = PreviewIntegrator::DirectIntersection;
 
         Point2i Resolution  = kDefaultResolution;
@@ -40,10 +43,10 @@ namespace akane::gui
 
     inline bool EqualState(const RenderingState& lhs, const RenderingState& rhs)
     {
-        return lhs.Version == rhs.Version && lhs.IntegrationMode == rhs.IntegrationMode &&
-               lhs.Resolution == rhs.Resolution && lhs.CameraOrigin == rhs.CameraOrigin &&
-               lhs.CameraForward == rhs.CameraForward && lhs.CameraUpward == rhs.CameraUpward &&
-               lhs.CameraFov == rhs.CameraFov;
+        return lhs.Version == rhs.Version && lhs.ThisScene == rhs.ThisScene &&
+               lhs.IntegrationMode == rhs.IntegrationMode && lhs.Resolution == rhs.Resolution &&
+               lhs.CameraOrigin == rhs.CameraOrigin && lhs.CameraForward == rhs.CameraForward &&
+               lhs.CameraUpward == rhs.CameraUpward && lhs.CameraFov == rhs.CameraFov;
     }
 
     class SceneEditWindow
@@ -70,6 +73,7 @@ namespace akane::gui
         void UpdateRenderingEditor(RenderingState& state);
         void UpdateCameraEditor(RenderingState& state);
         void UpdateMaterialEditor(RenderingState& state);
+        void UpdateLightEditor(RenderingState& state);
         void UpdateCameraAction(RenderingState& state);
 
         void RenderInBackground();
@@ -106,6 +110,9 @@ namespace akane::gui
         //
         //
         Sampler::Ptr sampler;
-        EmbreeScene scene;
+        // EmbreeScene scene;
+
+        std::string SceneName = "";
+        std::shared_ptr<EmbreeScene> scene;
     };
 } // namespace akane::gui
