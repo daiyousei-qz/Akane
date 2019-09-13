@@ -1,3 +1,0 @@
-[submodule "external/edslib"]
-	path = external/edslib
-	url = https://github.com/edsDev/edslib

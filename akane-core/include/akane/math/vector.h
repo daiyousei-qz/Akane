@@ -1,51 +1,47 @@
 #pragma once
-#include "akane/math/float_type.h"
-#include "akane/math/math.h"
+#include "akane/common/basic.h"
 #include <array>
-#include <algorithm>
-#include <numeric>
 #include <type_traits>
-#include <cassert>
 
 namespace akane
 {
-    template <typename T, size_t N> struct Vec
+    template <typename Float, size_t N> struct Vec
     {
-        static_assert(std::is_arithmetic_v<T>);
+        static_assert(std::is_floating_point_v<T>);
 
         std::array<T, N> data;
 
-		constexpr Vec() noexcept
-		{
-			data.fill({});
-		}
-        constexpr Vec(T value) noexcept
+        constexpr Vec() noexcept
+        {
+            data.fill({});
+        }
+        constexpr Vec(Float value) noexcept
         {
             data.fill(value);
         }
-        constexpr Vec(std::array<T, N> xs) noexcept
+        constexpr Vec(std::array<Float, N> xs) noexcept
         {
             data = xs;
         }
 
-        constexpr Vec(T x, T y) : data{x, y}
+        constexpr Vec(Float x, Float y) : data{x, y}
         {
             static_assert(N == 2);
         }
-        constexpr Vec(T x, T y, T z) : data{x, y, z}
+        constexpr Vec(Float x, Float y, Float z) : data{x, y, z}
         {
             static_assert(N == 3);
         }
-        constexpr Vec(T x, T y, T z, T w) : data{x, y, z, w}
+        constexpr Vec(Float x, Float y, Float z, Float w) : data{x, y, z, w}
         {
             static_assert(N == 4);
         }
 
-        constexpr T& operator[](size_t index) noexcept
+        constexpr Float& operator[](size_t index) noexcept
         {
             return data[index];
         }
-        constexpr const T& operator[](size_t index) const noexcept
+        constexpr const Float& operator[](size_t index) const noexcept
         {
             return data[index];
         }
@@ -74,136 +70,103 @@ namespace akane
             return data.end();
         }
 
-		constexpr T& X() noexcept
-		{
-			static_assert(N >= 1);
-			return data[0];
-		}
-		constexpr T& Y() noexcept
-		{
-			static_assert(N >= 2);
-			return data[1];
-		}
-		constexpr T& Z() noexcept
-		{
-			static_assert(N >= 3);
-			return data[2];
-		}
-		constexpr T X() const noexcept
-		{
-			static_assert(N >= 1);
-			return data[0];
-		}
-		constexpr T Y() const noexcept
-		{
-			static_assert(N >= 2);
-			return data[1];
-		}
-		constexpr T Z() const noexcept
-		{
-			static_assert(N >= 3);
-			return data[2];
-		}
-
-		T Max() const noexcept
-		{
-			T result = data[0];
-			for (const auto& x : data) { result = max(result, x); }
-
-			return result;
-		}
-
-		T Min() const noexcept
-		{
-			T result = data[0];
-			for (const auto& x : data) { result = min(result, x); }
-
-			return result;
-		}
-
-        T Sum() const noexcept
+        constexpr Float& X() noexcept
         {
-            T result{};
-            for (const auto& x : data) { result += x; }
+            static_assert(N >= 1);
+            return data[0];
+        }
+        constexpr Float& Y() noexcept
+        {
+            static_assert(N >= 2);
+            return data[1];
+        }
+        constexpr Float& Z() noexcept
+        {
+            static_assert(N >= 3);
+            return data[2];
+        }
+        constexpr Float X() const noexcept
+        {
+            static_assert(N >= 1);
+            return data[0];
+        }
+        constexpr Float Y() const noexcept
+        {
+            static_assert(N >= 2);
+            return data[1];
+        }
+        constexpr Float Z() const noexcept
+        {
+            static_assert(N >= 3);
+            return data[2];
+        }
+
+        constexpr Float Max() const noexcept
+        {
+            Float result = data[0];
+            for (const auto& x : data)
+            {
+                result = std::max(result, x);
+            }
 
             return result;
         }
 
-		T LengthSq() const noexcept
-		{
-			static_assert(std::is_floating_point_v<T>);
-
-			auto self = *this;
-			return (self * self).Sum();
-		}
-
-        T Length() const noexcept
+        constexpr Float Min() const noexcept
         {
-			static_assert(std::is_floating_point_v<T>);
+            Float result = data[0];
+            for (const auto& x : data)
+            {
+                result = std::min(result, x);
+            }
 
-            auto self = *this;
-            return static_cast<T>(sqrt((self * self).Sum()));
+            return result;
         }
 
-        Vec Normalized() const noexcept
+        constexpr Float Sum() const noexcept
         {
-			static_assert(std::is_floating_point_v<T>);
+            Float result{};
+            for (const auto& x : data)
+            {
+                result += x;
+            }
 
-			return *this * (1.f / Length());
+            return result;
         }
 
-		T Distance(Vec other) const noexcept
-		{
-			auto self = *this;
-			return (self - other).Length();
-		}
-
-        T Dot(Vec other) const noexcept
+        constexpr Float LengthSq() const noexcept
         {
             auto self = *this;
-            return (self * other).Sum();
+            return (self * self).Sum();
         }
 
-        Vec Cross(Vec other) const noexcept
+        Float Length() const noexcept
         {
-            static_assert(N == 3,
-                          "cross product only works for 3-dimensional vectors");
-
-            const auto& a = data;
-            const auto& b = other.data;
-
-            return Vec{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
-                       a[0] * b[1] - a[1] * b[0]};
+            return static_cast<Float>(std::sqrt(LengthSq()));
         }
     };
 
-    using Point2f = Vec<akFloat, 2>;
-    using Point3f = Vec<akFloat, 3>;
-    using Point2i = Vec<int32_t, 2>;
-    using Point3i = Vec<int32_t, 3>;
-
-    using Vec2f = Vec<akFloat, 2>;
-    using Vec3f = Vec<akFloat, 3>;
-    using Vec4f = Vec<akFloat, 4>;
-
-    template <typename T, size_t N>
-    inline constexpr Vec<T, N> operator+(Vec<T, N> v) noexcept
+    template <typename Float, size_t N>
+    inline constexpr Vec<Float, N> operator+(Vec<Float, N> v) noexcept
     {
         return v;
     }
-    template <typename T, size_t N>
-    inline constexpr Vec<T, N> operator-(Vec<T, N> v) noexcept
+    template <typename Float, size_t N>
+    inline constexpr Vec<Float, N> operator-(Vec<Float, N> v) noexcept
     {
-        for (auto& x : v) { x = -x; }
+        for (auto& x : v)
+        {
+            x = -x;
+        }
         return v;
     }
 
-// comparison op
-#define DEF_COMPARISON_OP(OP)                                                  \
-    template <typename T, size_t N>                                            \
-    inline constexpr bool operator OP(Vec<T, N> lhs, Vec<T, N> rhs) noexcept   \
-    {                                                                          \
-        return lhs.data OP rhs.data;                                           \
+    // comparison op
+#define DEF_COMPARISON_OP(OP)                                                                      \
+    template <typename Float, size_t N>                                                            \
+    inline constexpr bool operator OP(Vec<Float, N> lhs, Vec<Float, N> rhs) noexcept               \
+    {                                                                                              \
+        return lhs.data OP rhs.data;                                                               \
     }
 
     DEF_COMPARISON_OP(==)
@@ -217,59 +180,64 @@ namespace akane
 #define APPLY_BINARY_OPSET(F) F(+) F(-) F(*) F(/)
 #define MAKE_ASSIGN_OP(OP) OP## =
 
-// elemwise assign op
-#define DEF_ELEMWISE_ASSIGN_OP_NO_BROADCAST(OP)                                \
-    template <typename T, size_t N>                                            \
-    inline constexpr Vec<T, N>& operator MAKE_ASSIGN_OP(OP)(                   \
-        Vec<T, N>& lhs, Vec<T, N> rhs) noexcept                                \
-    {                                                                          \
-        for (size_t i = 0; i < N; ++i) { lhs[i] MAKE_ASSIGN_OP(OP) rhs[i]; }   \
-        return lhs;                                                            \
+    // elemwise assign op
+#define DEF_ELEMWISE_ASSIGN_OP_NO_BROADCAST(OP)                                                    \
+    template <typename Float, size_t N>                                                            \
+    inline constexpr Vec<Float, N>& operator MAKE_ASSIGN_OP(OP)(Vec<Float, N>& lhs,                \
+                                                                Vec<Float, N> rhs) noexcept        \
+    {                                                                                              \
+        for (size_t i = 0; i < N; ++i)                                                             \
+        {                                                                                          \
+            lhs[i] MAKE_ASSIGN_OP(OP) rhs[i];                                                      \
+        }                                                                                          \
+        return lhs;                                                                                \
     }
 
     APPLY_BINARY_OPSET(DEF_ELEMWISE_ASSIGN_OP_NO_BROADCAST)
 
 #undef DEF_ELEMWISE_ASSIGN_OP_NO_BROADCAST
 
-// elemwise assign op with broadcast
-#define DEF_ELEMWISE_ASSIGN_OP_WITH_BROADCAST(OP)                              \
-    template <typename T, size_t N>                                            \
-    inline constexpr Vec<T, N>& operator MAKE_ASSIGN_OP(OP)(Vec<T, N>& lhs,    \
-                                                            T rhs) noexcept    \
-    {                                                                          \
-        for (size_t i = 0; i < N; ++i) { lhs[i] MAKE_ASSIGN_OP(OP) rhs; }      \
-        return lhs;                                                            \
+    // elemwise assign op with broadcast
+#define DEF_ELEMWISE_ASSIGN_OP_WITH_BROADCAST(OP)                                                  \
+    template <typename Float, size_t N>                                                            \
+    inline constexpr Vec<Float, N>& operator MAKE_ASSIGN_OP(OP)(Vec<Float, N>& lhs,                \
+                                                                Float rhs) noexcept                \
+    {                                                                                              \
+        for (size_t i = 0; i < N; ++i)                                                             \
+        {                                                                                          \
+            lhs[i] MAKE_ASSIGN_OP(OP) rhs;                                                         \
+        }                                                                                          \
+        return lhs;                                                                                \
     }
 
     APPLY_BINARY_OPSET(DEF_ELEMWISE_ASSIGN_OP_WITH_BROADCAST)
 #undef DEF_ELEMWISE_ASSIGN_OP_WITH_BROADCAST
 
-// elemwise op
-#define DEF_ELEMWISE_OP_NO_BROADCAST(OP)                                       \
-    template <typename T, size_t N>                                            \
-    inline constexpr Vec<T, N> operator OP(Vec<T, N> lhs,                      \
-                                           Vec<T, N> rhs) noexcept             \
-    {                                                                          \
-        lhs MAKE_ASSIGN_OP(OP) rhs;                                            \
-        return lhs;                                                            \
+    // elemwise op
+#define DEF_ELEMWISE_OP_NO_BROADCAST(OP)                                                           \
+    template <typename Float, size_t N>                                                            \
+    inline constexpr Vec<Float, N> operator OP(Vec<Float, N> lhs, Vec<Float, N> rhs) noexcept      \
+    {                                                                                              \
+        lhs MAKE_ASSIGN_OP(OP) rhs;                                                                \
+        return lhs;                                                                                \
     }
 
     APPLY_BINARY_OPSET(DEF_ELEMWISE_OP_NO_BROADCAST)
 #undef DEF_ELEMWISE_OP_NO_BROADCAST
 
-// elemwise op with broadcast
-#define DEF_ELEMWISE_OP_WITH_BROADCAST(OP)                                     \
-    template <typename T, size_t N>                                            \
-    inline constexpr Vec<T, N> operator OP(Vec<T, N> lhs, T rhs) noexcept      \
-    {                                                                          \
-        lhs MAKE_ASSIGN_OP(OP) rhs;                                            \
-        return lhs;                                                            \
-    }                                                                          \
-    template <typename T, size_t N>                                            \
-    inline constexpr Vec<T, N> operator OP(T lhs, Vec<T, N> rhs) noexcept      \
-    {                                                                          \
-        rhs MAKE_ASSIGN_OP(OP) lhs;                                            \
-        return rhs;                                                            \
+    // elemwise op with broadcast
+#define DEF_ELEMWISE_OP_WITH_BROADCAST(OP)                                                         \
+    template <typename Float, size_t N>                                                            \
+    inline constexpr Vec<Float, N> operator OP(Vec<Float, N> lhs, Float rhs) noexcept              \
+    {                                                                                              \
+        lhs MAKE_ASSIGN_OP(OP) rhs;                                                                \
+        return lhs;                                                                                \
+    }                                                                                              \
+    template <typename Float, size_t N>                                                            \
+    inline constexpr Vec<Float, N> operator OP(Float lhs, Vec<Float, N> rhs) noexcept              \
+    {                                                                                              \
+        rhs MAKE_ASSIGN_OP(OP) lhs;                                                                \
+        return rhs;                                                                                \
     }
 
     APPLY_BINARY_OPSET(DEF_ELEMWISE_OP_WITH_BROADCAST)

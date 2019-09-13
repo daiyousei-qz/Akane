@@ -2,7 +2,7 @@
 #include "akane/color.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "akane/external/stb/stb_image.h"
+#include <stb_image.h>
 
 namespace akane
 {
