@@ -1,0 +1,15 @@
+[submodule "external/edslib"]
+	path = external/edslib
+	url = https://github.com/edsDev/edslib
+[submodule "external/QuickImGui"]
+	path = external/QuickImGui
+	url = https://github.com/edsDev/QuickImGui
+[submodule "external/tinyobjloader"]
+	path = external/tinyobjloader
+	url = https://github.com/syoyo/tinyobjloader
+[submodule "external/fmt"]
+	path = external/fmt
+	url = https://github.com/fmtlib/fmt
+[submodule "external/nlohmann-json"]
+	path = external/nlohmann-json
+	url = https://github.com/nlohmann/json
