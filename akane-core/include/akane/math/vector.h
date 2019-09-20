@@ -7,9 +7,9 @@ namespace akane
 {
     template <typename Float, size_t N> struct Vec
     {
-        static_assert(std::is_floating_point_v<T>);
+        static_assert(std::is_floating_point_v<Float>);
 
-        std::array<T, N> data;
+        std::array<Float, N> data;
 
         constexpr Vec() noexcept
         {
@@ -143,6 +143,16 @@ namespace akane
         Float Length() const noexcept
         {
             return static_cast<Float>(std::sqrt(LengthSq()));
+        }
+
+        Vec Normalized() const noexcept
+        {
+            return *this * (1.f / Length());
+        }
+
+        Float Dot(Vec other) const noexcept
+        {
+            return (*this * other).Sum();
         }
     };
 

@@ -41,9 +41,9 @@ namespace akane
             auto c1 = other.vy_;
             auto c2 = other.vz_;
 
-            auto new_vx = Vec3{r0.Dot(c0), r1.Dot(c0), r2.Dot(c0)};
-            auto new_vy = Vec3{r0.Dot(c1), r1.Dot(c1), r2.Dot(c1)};
-            auto new_vz = Vec3{r0.Dot(c2), r1.Dot(c2), r2.Dot(c2)};
+            auto new_vx = Vec3{Dot(r0, c0), Dot(r1, c0), Dot(r2, c0)};
+            auto new_vy = Vec3{Dot(r0, c1), Dot(r1, c1), Dot(r2, c1)};
+            auto new_vz = Vec3{Dot(r0, c2), Dot(r1, c2), Dot(r2, c2)};
 
             return Transform(new_vx, new_vy, new_vz, other.p_);
         }
@@ -77,7 +77,7 @@ namespace akane
 
         Vec3 Apply(const Vec3& v) const noexcept
         {
-            return Vec3{v.Dot(vx_), v.Dot(vy_), v.Dot(vz_)} + p_;
+            return ApplyLinear(v) + p_;
         }
 
         Vec3 ApplyLinear(const Vec3& v) const noexcept
@@ -87,12 +87,7 @@ namespace akane
 
         Vec3 Inverse(const Vec3& v) const noexcept
         {
-            auto v_ = v - p_;
-            auto xx = v_.X() * vx_.X() + v_.Y() * vy_.X() + v_.Z() * vz_.X();
-            auto yy = v_.X() * vx_.Y() + v_.Y() * vy_.Y() + v_.Z() * vz_.Y();
-            auto zz = v_.X() * vx_.Z() + v_.Y() * vy_.Z() + v_.Z() * vz_.Z();
-
-            return Vec3{xx, yy, zz};
+            return InverseLinear(v - p_);
         }
 
         Vec3 InverseLinear(const Vec3& v) const noexcept
@@ -115,38 +110,36 @@ namespace akane
         // builtin transform factory
         //
 
-        static const Transform& Identity()
+        static constexpr Transform Identity() noexcept
         {
-            static auto id = Transform({1, 0, 0}, {0, 1, 0}, {0, 0, 1});
-
-            return id;
+            return Transform({1, 0, 0}, {0, 1, 0}, {0, 0, 1});
         }
 
-        static const Transform CreateScale(float ratio)
+        static Transform CreateScale(float ratio) noexcept
         {
             AKANE_REQUIRE(ratio > 0);
 
             return Transform({ratio, 0, 0}, {0, ratio, 0}, {0, 0, ratio});
         }
 
-        static Transform CreateRotateX(float theta)
+        static Transform CreateRotateX(float theta) noexcept
         {
-            auto cos_theta = Cos(theta);
-            auto sin_theta = Sin(theta);
+            float cos_theta = cos(theta);
+            float sin_theta = sin(theta);
             return Transform({1, 0, 0}, {0, cos_theta, sin_theta}, {0, -sin_theta, cos_theta});
         }
 
-        static Transform CreateRotateY(float theta)
+        static Transform CreateRotateY(float theta) noexcept
         {
-            auto cos_theta = Cos(theta);
-            auto sin_theta = Sin(theta);
+            float cos_theta = cos(theta);
+            float sin_theta = sin(theta);
             return Transform({cos_theta, 0, -sin_theta}, {0, 1, 0}, {sin_theta, 0, cos_theta});
         }
 
-        static Transform CreateRotateZ(float theta)
+        static Transform CreateRotateZ(float theta) noexcept
         {
-            auto cos_theta = Cos(theta);
-            auto sin_theta = Sin(theta);
+            float cos_theta = cos(theta);
+            float sin_theta = sin(theta);
             return Transform({cos_theta, sin_theta, 0}, {-sin_theta, cos_theta, 0}, {0, 0, 1});
         }
 
@@ -154,10 +147,5 @@ namespace akane
         Vec3 vx_, vy_, vz_; // column vectors for linear transform
         Vec3 p_;
     };
-
-    Transform CreateWorldCoordTransform(Vec3 local_x, Vec3 local_y, Vec3 local_z)
-    {
-        return Transform{local_x.Normalized(), local_y.Normalized(), local_z.Normalized()};
-    }
 
 } // namespace akane

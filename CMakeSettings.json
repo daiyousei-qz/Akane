@@ -12,16 +12,7 @@
             "cmakeCommandArgs": "",
             "buildCommandArgs": "-v",
             "ctestCommandArgs": "",
-            "variables": [
-                {
-                    "name": "CMAKE_TOOLCHAIN_FILE",
-                    "value": "C:\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
-                },
-                {
-                    "name": "VCPKG_TARGET_TRIPLET",
-                    "value": "x64-windows-static"
-                }
-            ]
+            "variables": []
         },
         {
             "name": "x64-RelWithDebInfo",
@@ -35,16 +26,7 @@
             "inheritEnvironments": [
                 "msvc_x64_x64"
             ],
-            "variables": [
-                {
-                    "name": "CMAKE_TOOLCHAIN_FILE",
-                    "value": "C:\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
-                },
-                {
-                    "name": "VCPKG_TARGET_TRIPLET",
-                    "value": "x64-windows-static"
-                }
-            ]
+            "variables": []
         },
         {
             "name": "x64-Release",
@@ -58,16 +40,7 @@
             "inheritEnvironments": [
                 "msvc_x64_x64"
             ],
-            "variables": [
-                {
-                    "name": "CMAKE_TOOLCHAIN_FILE",
-                    "value": "C:\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
-                },
-                {
-                    "name": "VCPKG_TARGET_TRIPLET",
-                    "value": "x64-windows-static"
-                }
-            ]
+            "variables": []
         }
     ]
 }

@@ -13,9 +13,9 @@ namespace akane
     class RandomEngine final
     {
     public:
-        RandomEngine()
+        RandomEngine(uint64_t seed = 13579u)
         {
-            Seed(13579);
+            Seed(seed);
         }
 
         void Seed(uint64_t value) noexcept
@@ -72,9 +72,9 @@ namespace akane
         // return static_cast<float>(engine.Next() & mask) * unit;
     }
 
-    inline Vec2 SampleUniformReal2D(RandomEngine& engine)
+    inline Point2f SampleUniformReal2D(RandomEngine& engine)
     {
-        return Vec2{SampleUniformReal(engine), SampleUniformReal(engine)};
+        return Point2f{SampleUniformReal(engine), SampleUniformReal(engine)};
     }
 
     inline float SampleBool(RandomEngine& engine, float prob)

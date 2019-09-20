@@ -40,14 +40,14 @@ namespace akane
             thresholds_.clear();
             thresholds_.reserve(std::distance(weight_begin, weight_end));
 
-            float acc = 0.f;
+            float acc = 0;
             for (auto p = weight_begin; p != weight_end; ++p)
             {
                 acc += *p;
                 thresholds_.push_back(acc);
             }
 
-            if (acc != kZero)
+            if (acc != 0)
             {
                 for (auto& x : thresholds_)
                 {

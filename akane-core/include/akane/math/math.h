@@ -1,4 +1,5 @@
 #pragma once
+#include "akane/math/point.h"
 #include "akane/math/vector.h"
 #include <cmath>
 #include <numeric>
@@ -6,29 +7,54 @@
 
 namespace akane
 {
-    using Vec2 = Vec<float, 2>;
-    using Vec3 = Vec<float, 3>;
-
-    constexpr float kPi = 3.1415925f;
-
     using std::abs;
+    using std::ceil;
+    using std::clamp;
     using std::cos;
+    using std::floor;
     using std::max;
     using std::min;
     using std::pow;
     using std::sin;
     using std::sqrt;
+    using std::tan;
 
-    template <typename Float, size_t N>
-    inline constexpr Float Normalize(Vec<Float, N> a) noexcept
+    using Point2i = Point<int, 2>;
+    using Point3i = Point<int, 3>;
+    using Point2f = Point<float, 2>;
+    using Point3f = Point<float, 3>;
+
+    using Vec2 = Vec<float, 2>;
+    using Vec3 = Vec<float, 3>;
+
+    inline constexpr Vec2 PointToVec(Point2i p) noexcept
     {
-        return a * (static_cast<Float>(1.f) / a.Length());
+        return Vec2{static_cast<float>(p[0]), static_cast<float>(p[1])};
+    }
+    inline constexpr Vec3 PointToVec(Point3i p) noexcept
+    {
+        return Vec3{static_cast<float>(p[0]), static_cast<float>(p[1]), static_cast<float>(p[2])};
+    }
+    inline constexpr Vec2 PointToVec(Point2f p) noexcept
+    {
+        return Vec2{p[0], p[1]};
+    }
+    inline constexpr Vec3 PointToVec(Point3f p) noexcept
+    {
+        return Vec3{p[0], p[1], p[2]};
     }
 
-    template <typename Float, size_t N>
-    inline constexpr Float Distance(Vec<Float, N> a, Vec<Float, N> b) noexcept
+    constexpr float kPi       = 3.1415925f;
+    constexpr float kInvPi    = 1.f / kPi;
+    constexpr float kTwoPi    = 2.f * kPi;
+    constexpr float kInvTwoPi = 1.f / kTwoPi;
+
+    constexpr float kAreaUnitSphere     = 4.f * kPi;
+    constexpr float kAreaUnitHemisphere = 2.f * kPi;
+
+    inline constexpr float AreaUnitCone(float cos_theta) noexcept
     {
-        return (a - b).Length();
+        return 2.f * kPi * (1 - cos_theta);
     }
 
     template <typename Float, size_t N>

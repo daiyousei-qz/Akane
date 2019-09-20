@@ -1,15 +1,43 @@
 #pragma once
-#include <stdexcept>
+#include <edslib/memory/arena.h>
 #include <fmt/format.h>
+#include <stdexcept>
+#include <cstdint>
+#include <memory>
 
 namespace akane
 {
-    template <typename TFmt, typename... TArgs> void Throw(const TFmt& fmt, const TArgs& ... args)
+    // common base for heap-allocated no-copy no-move objects
+    class Object
+    {
+    public:
+        Object()          = default;
+        virtual ~Object() = default;
+
+        Object(const Object&) = delete;
+        Object(Object&&)      = delete;
+
+        Object& operator=(const Object&) = delete;
+        Object& operator=(Object&&) = delete;
+    };
+
+    // useful memory management tools
+    using eds::Arena;
+    using Workspace = eds::BasicArena<eds::StackWorkspaceMemoryProvider<2 * 1024>>;
+
+    using std::make_unique;
+    using std::unique_ptr;
+
+    using std::make_shared;
+    using std::shared_ptr;
+
+    template <typename TFmt, typename... TArgs>
+    [[noreturn]] void Throw(const TFmt& fmt, const TArgs&... args)
     {
         throw std::runtime_error(fmt::format(fmt, args...));
     }
 
-    template <typename TFmt, typename... TArgs> void Warn(const TFmt& fmt, const TArgs& ... args)
+    template <typename TFmt, typename... TArgs> void Warn(const TFmt& fmt, const TArgs&... args)
     {
         fmt::print(fmt, args...);
     }

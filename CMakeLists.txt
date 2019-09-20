@@ -4,23 +4,23 @@ project(Akane CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
+if(MSVC)
+    add_compile_options(/Zc:__cplusplus)
+endif()
+
 # ==============================================================================
 # Load Dependency
 
-# fmt::fmt
-find_package(fmt REQUIRED)
-
-# spdlog::spdlog
-find_package(spdlog REQUIRED)
-
-# stb
-find_path(STB_INCLUDE_DIR NAMES stb.h)
-add_library(stb INTERFACE)
-target_include_directories(stb INTERFACE ${STB_INCLUDE_DIR})
-
-# Catch2::Catch2
-find_package(Catch2 REQUIRED)
+include(cmake/FindEmbree.cmake)
+include(cmake/FindEdsLib.cmake)
+include(cmake/FindFmt.cmake)
+include(cmake/FindJson.cmake)
+include(cmake/FindQuickImGui.cmake)
+include(cmake/FindStb.cmake)
+include(cmake/FindTinyObjLoader.cmake)
 
 # ==============================================================================
 
 add_subdirectory(./akane-core)
+add_subdirectory(./akane-gui)
+add_subdirectory(./akane-shell)
