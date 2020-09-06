@@ -19,7 +19,7 @@ namespace akane::gui
     void SceneEditWindow::Initialize()
     {
         // load scene
-        auto scene_desc = LoadSceneDesc("d:/livingroom.json");
+        auto scene_desc = LoadSceneDesc("d:/cbox.json");
 
         auto scene = make_shared<EmbreeScene>();
         for (const auto& object : scene_desc->objects)
@@ -28,16 +28,16 @@ namespace akane::gui
                                  .RotateX(object.rotation[0])
                                  .RotateY(object.rotation[1])
                                  .RotateZ(object.rotation[2])
-                                 .Move(PointToVec(object.position));
+                                 .Move(object.position);
 
             scene->AddMesh(*object.mesh, transform);
         }
         scene->Commit();
 
         CurrentState.ThisScene     = scene;
-        CurrentState.CameraOrigin  = PointToVec(scene_desc->camera.origin);
-        CurrentState.CameraForward = PointToVec(scene_desc->camera.forward);
-        CurrentState.CameraUpward  = PointToVec(scene_desc->camera.upward);
+        CurrentState.CameraOrigin  = scene_desc->camera.origin;
+        CurrentState.CameraForward = scene_desc->camera.forward;
+        CurrentState.CameraUpward  = scene_desc->camera.upward;
         CurrentState.CameraFov     = scene_desc->camera.fov;
 
         // create texture
@@ -367,7 +367,8 @@ namespace akane::gui
                 if (CurrentState.Mode == IntegrationMode::PreviewPathTracing)
                 {
                     cnt += 1;
-                    if (cnt == 100) {
+                    if (cnt == 100)
+                    {
                         DisplayCanvas->SaveImage("d:/workspace/gui_dump.png", 1.f / CurrentSpp);
                     }
                 }

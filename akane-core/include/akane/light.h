@@ -10,19 +10,12 @@ namespace akane
     class Scene;
     class Primitive;
 
-    // GlobalLight is usually distant light or skybox
-    // which would not be explicit sampled during path-tracing
-    class GlobalLight : public Object
-    {
-    public:
-        virtual Spectrum Eval(const Ray& ray) const = 0;
-    };
-
+    // TODO: allow visibility test for global light
     class LightSample
     {
     public:
-        LightSample(const Vec3& point, const Vec3& normal, float pdf)
-            : point_(point), normal_(normal), pdf_(pdf)
+        LightSample(const Vec3& point, const Vec3& normal, float pdf, bool global = false)
+            : point_(point), normal_(normal), pdf_(pdf), global_(global)
         {
         }
 
@@ -31,19 +24,21 @@ namespace akane
 
         Ray GenerateTestRay(const Vec3& p) const noexcept
         {
-            return Ray{point_, (p - point_).Normalized()};
+            return RayFromTo(point_, p);
         }
 
         Ray GenerateShadowRay(const Vec3& p) const noexcept
         {
-            return Ray{p, (point_ - p).Normalized()};
+            return RayFromTo(p, point_);
         }
 
+        // point of light source
         Vec3 Point() const noexcept
         {
             return point_;
         }
 
+        // probability distribution of the particular point
         float Pdf() const noexcept
         {
             return pdf_;
@@ -53,6 +48,7 @@ namespace akane
         Vec3 point_;  // point at light source
         Vec3 normal_; // zero if light comes from a delta light source
         float pdf_;
+        bool global_; // if this is a sample from global light
     };
 
     // Explicit Light Sampling

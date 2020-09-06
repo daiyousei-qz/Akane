@@ -101,25 +101,32 @@ namespace akane
         };
 
         std::random_device rnd{};
-        std::vector<std::future<RenderResult>> futures;
-        for (int i = 0; i < thread_count; ++i)
+        if (thread_count == 1)
         {
-            auto ssp =
-                sample_per_pixel / thread_count + (i < sample_per_pixel % thread_count ? 1 : 0);
-            futures.push_back(std::async(execute_render, rnd(), ssp, i));
+            return execute_render(rnd(), sample_per_pixel, 0);
         }
-
-        auto ssp    = 0;
-        auto canvas = std::make_shared<Canvas>(resolution[0], resolution[1]);
-        for (auto& future : futures)
+        else
         {
-            future.wait();
-            auto result = future.get();
+            std::vector<std::future<RenderResult>> futures;
+            for (int i = 0; i < thread_count; ++i)
+            {
+                auto ssp =
+                    sample_per_pixel / thread_count + (i < sample_per_pixel % thread_count ? 1 : 0);
+                futures.push_back(std::async(execute_render, rnd(), ssp, i));
+            }
 
-            ssp += result.ssp;
-            canvas->Increment(*result.canvas);
+            auto ssp    = 0;
+            auto canvas = std::make_shared<Canvas>(resolution[0], resolution[1]);
+            for (auto& future : futures)
+            {
+                future.wait();
+                auto result = future.get();
+
+                ssp += result.ssp;
+                canvas->Increment(*result.canvas);
+            }
+
+            return RenderResult{ssp, canvas};
         }
-
-        return RenderResult{ssp, canvas};
     }
 } // namespace akane

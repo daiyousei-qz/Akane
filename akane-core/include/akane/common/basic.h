@@ -1,5 +1,6 @@
 #pragma once
 #include <edslib/memory/arena.h>
+#include <nlohmann/json.hpp>
 #include <fmt/format.h>
 #include <stdexcept>
 #include <cstdint>

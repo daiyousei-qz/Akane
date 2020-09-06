@@ -2,11 +2,14 @@
 
 #pragma once
 #include "akane/math/math.h"
-#include <cmath>
 
 namespace akane
 {
-    // samples a point on unit hemisphere
+    /**
+     * Samples a point on unit hemisphere
+     *
+     * @param u uniform sample in unit square
+     */
     inline Vec3 SampleUniformHemisphere(Point2f u) noexcept
     {
         float z   = u[0];
@@ -21,7 +24,11 @@ namespace akane
         return 1.f / (kPi * 2.f);
     }
 
-    // samples a point on unit sphere
+    /**
+     * Samples a point on unit sphere
+     *
+     * @param u uniform sample in unit square
+     */
     inline Vec3 SampleUniformSphere(Point2f u) noexcept
     {
         float z   = 1 - 2 * u[0];
@@ -36,7 +43,11 @@ namespace akane
         return 1.f / (kPi * 4.f);
     }
 
-    // samples a point on unit disk on xy plane
+    /**
+     * Samples a point on unit disk on xy plane
+     *
+     * @param u uniform sample in unit square
+     */
     inline Vec3 SampleUniformDisk(Point2f u) noexcept
     {
         float r   = sqrt(u[0]);

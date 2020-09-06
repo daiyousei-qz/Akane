@@ -8,9 +8,8 @@
 
 #include "akane/light/point.h"
 #include "akane/light/spot.h"
-
-#include "akane/global_light/linear_blend.h"
-#include "akane/global_light/distant.h"
+#include "akane/light/distant.h"
+#include "akane/light/skybox.h"
 
 namespace akane
 {
@@ -23,8 +22,7 @@ namespace akane
         {
         }
 
-        bool Intersect(const Ray& ray, Workspace& workspace,
-                       IntersectionInfo& isect) const override
+        bool Intersect(const Ray& ray, Workspace& workspace, IntersectionInfo& isect) const override
         {
             return world_->Intersect(ray, kTravelDistanceMin, kTravelDistanceMax, isect);
         }
@@ -45,7 +43,7 @@ namespace akane
         void AddGeometricLight(ShapeType shape, Vec3 color, float power)
         {
             auto object = arena_.Construct<GeometricPrimitive<ShapeType>>(shape);
-            
+
             object->BindAreaLight(color, power);
             RegisterLight(object->GetAreaLight());
 
@@ -61,13 +59,16 @@ namespace akane
             RegisterLight(arena_.Construct<SpotLight>(point, direction, theta, color, power));
         }
 
-        void AddLinearBlendLight(Vec3 color)
+        void AddDistantLight(const Vec3& direction, const Spectrum& color, Vec3 world_center,
+                             float world_radius)
         {
-            RegisterGlobalLight(arena_.Construct<LinearBlendLight>(color));
+            AKANE_REQUIRE(GetGlobalLight() == nullptr);
+            RegisterLight(
+                arena_.Construct<DistantLight>(direction, color, world_center, world_radius), true);
         }
-        void AddDitantLight(Vec3 color, Vec3 direction)
+        void AddSkybox(const Spectrum& albedo, Vec3 world_center, float world_radius)
         {
-            RegisterGlobalLight(arena_.Construct<DistantLight>(color, direction));
+            RegisterLight(arena_.Construct<SkyboxLight>(albedo, world_center, world_radius), true);
         }
 
     private:

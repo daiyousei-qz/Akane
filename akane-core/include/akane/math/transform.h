@@ -101,10 +101,10 @@ namespace akane
 
         void Print() const noexcept
         {
-            printf("%6f, %6f, %6f\n", vx_[0], vy_[0], vz_[0]);
-            printf("%6f, %6f, %6f\n", vx_[1], vy_[1], vz_[1]);
-            printf("%6f, %6f, %6f\n", vx_[2], vy_[2], vz_[2]);
-            // printf("\n%6f, %6f, %6f\n", p[0], p[1], p[2]);
+            fmt::print("{:.6f}, {:.6f}, {:.6f}", vx_[0], vy_[0], vz_[0]);
+            fmt::print("{:.6f}, {:.6f}, {:.6f}", vx_[1], vy_[1], vz_[1]);
+            fmt::print("{:.6f}, {:.6f}, {:.6f}", vx_[2], vy_[2], vz_[2]);
+            // fmt::print("{:.6f}, {:.6f}, {:.6f}", p[0], p[1], p[2]);
         }
 
         // builtin transform factory

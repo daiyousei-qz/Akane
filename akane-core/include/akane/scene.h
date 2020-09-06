@@ -10,7 +10,7 @@
 namespace akane
 {
     constexpr float kTravelDistanceMin = 0.1f;
-    constexpr float kTravelDistanceMax = 10000.f;
+    constexpr float kTravelDistanceMax = 10.e8f;
 
     class Scene : public virtual Object
     {
@@ -26,11 +26,12 @@ namespace akane
         virtual bool Intersect(const Ray& ray, Workspace& workspace,
                                IntersectionInfo& isect) const = 0;
 
-        const auto& GetGlobalLightVec() const
+        Light* GetGlobalLight() const noexcept
         {
-            return global_lights_;
+            return global_light_;
         }
-        const auto& GetLightVec() const
+
+        const auto& GetLightVec() const noexcept
         {
             return lights_;
         }
@@ -63,19 +64,22 @@ namespace akane
             light_dist_.Reset(power_weights.data(), power_weights.data() + power_weights.size());
         }
 
-        void RegisterGlobalLight(GlobalLight* light)
+        void RegisterLight(Light* light, bool global = false)
         {
-            global_lights_.push_back(light);
-        }
-
-        void RegisterLight(Light* light)
-        {
-            lights_.push_back(light);
+            if (global)
+            {
+                AKANE_REQUIRE(global_light_ == nullptr);
+                global_light_ = light;
+            }
+            else
+            {
+                lights_.push_back(light);
+            }
         }
 
     private:
-        std::vector<GlobalLight*> global_lights_; // global lights won't be explicitly sampled
-        std::vector<Light*> lights_;
+        Light* global_light_        = nullptr;
+        std::vector<Light*> lights_ = {};
 
         float total_light_power_;
         DiscrateDistribution light_dist_;

@@ -14,17 +14,17 @@ namespace akane
         {
             engine_.Seed(seed);
         }
-        //virtual ~Sampler() = default;
+        // virtual ~Sampler() = default;
 
         // get a sample of x where x is in [0, 1)
         float Get1D()
         {
-            return SampleUniformReal(engine_);
+            return SampleUniformFloat(engine_);
         }
         // get a sample of (x, y) where both x, y are in [0, 1)
         Point2f Get2D()
         {
-            return SampleUniformReal2D(engine_);
+            return SampleUniformFloat2D(engine_);
         }
 
     private:

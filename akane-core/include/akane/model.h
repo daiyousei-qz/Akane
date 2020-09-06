@@ -56,15 +56,15 @@ namespace akane
         shared_ptr<MeshDesc> mesh;
 
         float scale;
-        Point3f position;
-        Point3f rotation;
+        Vec3 position;
+        Vec3 rotation;
     };
 
     struct CameraDesc
     {
-        Point3f origin;
-        Point3f forward;
-        Point3f upward;
+        Vec3 origin;
+        Vec3 forward;
+        Vec3 upward;
 
         float fov = 0.5f; // horizontal field of view, should in(0, 1], default is 90 degrees
         float aspect_ratio = 1.f; // vertical over horizontal

@@ -12,6 +12,11 @@ namespace akane
     public:
         // compute bsdf allocated at workspace given
         virtual const Bsdf* ComputeBsdf(Workspace& workspace,
-            const IntersectionInfo& isect) const = 0;
+                                        const IntersectionInfo& isect) const = 0;
+
+        virtual Spectrum ComputePreviewColor(Vec2 uv) const
+        {
+            return Spectrum{uv[0], uv[1], 0.f};
+        }
     };
-}
+} // namespace akane

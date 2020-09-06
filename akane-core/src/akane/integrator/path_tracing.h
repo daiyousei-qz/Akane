@@ -16,15 +16,6 @@ namespace akane
             AKANE_REQUIRE(min_bounce > 0 && max_bounce >= min_bounce);
         }
 
-        Spectrum SampleAllDirectLight(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
-                                      const IntersectionInfo& isect, const Vec3& wo,
-                                      const Bsdf& bsdf, const Transform& world2local) const;
-
-        Spectrum SampleRandomDirectLight(RenderingContext& ctx, Sampler& sampler,
-                                         const Scene& scene, const IntersectionInfo& isect,
-                                         const Vec3& wo, const Bsdf& bsdf,
-                                         const Transform& world2local) const;
-
         Spectrum Li(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
                     const Ray& camera_ray) const override;
 

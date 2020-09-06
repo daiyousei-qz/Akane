@@ -79,8 +79,8 @@ namespace akane
         tinyobj::ObjReader reader{};
         tinyobj::ObjReaderConfig config{};
 
-        config.mtl_search_path = dir.string();
-        auto success           = reader.ParseFromFile(file.string(), config);
+        // config.mtl_search_path = dir.string();
+        bool success = reader.ParseFromFile(file.string(), config);
         AKANE_REQUIRE(success);
 
         vector<shared_ptr<MaterialDesc>> material_vec;
@@ -90,20 +90,20 @@ namespace akane
             material_vec.push_back(ParseMaterial(material, dir, texture_cache));
         }
 
-        auto result = make_shared<MeshDesc>();
+        auto result  = make_shared<MeshDesc>();
         result->name = filename;
 
         for (size_t i = 0; i < reader.GetAttrib().vertices.size(); i += 3)
         {
             result->vertices.push_back({reader.GetAttrib().vertices[i],
-                                      reader.GetAttrib().vertices[i + 1u],
-                                      reader.GetAttrib().vertices[i + 2u]});
+                                        reader.GetAttrib().vertices[i + 1u],
+                                        reader.GetAttrib().vertices[i + 2u]});
         }
         for (size_t i = 0; i < reader.GetAttrib().normals.size(); i += 3)
         {
             result->normals.push_back({reader.GetAttrib().normals[i],
-                                     reader.GetAttrib().normals[i + 1u],
-                                     reader.GetAttrib().normals[i + 2u]});
+                                       reader.GetAttrib().normals[i + 1u],
+                                       reader.GetAttrib().normals[i + 2u]});
         }
         for (size_t i = 0; i < reader.GetAttrib().texcoords.size(); i += 2)
         {
@@ -165,7 +165,7 @@ namespace akane
             }
         }
 
-        result->texture_lookup = std::move(texture_cache);
+        result->texture_lookup = move(texture_cache);
         return result;
     }
 
@@ -187,38 +187,15 @@ namespace akane
         return json::parse(json_buf, json_buf + file_size);
     }
 
-    static float ParseJson_Float(const json& value)
-    {
-        AKANE_REQUIRE(value.is_number());
-
-        return value.get<float>();
-    }
-
-    static string ParseJson_String(const json& value)
-    {
-        AKANE_REQUIRE(value.is_string());
-
-        return value.get<string>();
-    }
-
-    static Point3f ParseJson_Point3f(const json& value)
-    {
-        AKANE_REQUIRE(value.is_array() && value.size() == 3);
-        AKANE_REQUIRE(value[0].is_number() && value[1].is_number() && value[2].is_number());
-
-        return Point3f{value[0].get<float>(), value[1].get<float>(), value[2].get<float>()};
-    }
-
     static CameraDesc ParseJson_CameraDesc(const json& value)
     {
         AKANE_REQUIRE(value.is_object());
 
         CameraDesc result{};
-        result.origin       = ParseJson_Point3f(value["origin"]);
-        result.forward      = ParseJson_Point3f(value["forward"]);
-        result.upward       = ParseJson_Point3f(value["upward"]);
-        result.fov          = ParseJson_Float(value["fov"]);
-        result.aspect_ratio = ParseJson_Float(value["aspect_ratio"]);
+        result.origin  = value.value<Vec3>("origin", {});
+        result.forward = value.value<Vec3>("forward", {});
+        result.upward  = value.value<Vec3>("upward", {});
+        result.fov     = value.value<float>("fov", 0.5f);
 
         return result;
     }
@@ -228,13 +205,13 @@ namespace akane
                             unordered_map<string, shared_ptr<MeshDesc>>& mesh_cache)
     {
         AKANE_REQUIRE(value.is_object());
-        AKANE_STRINGIFY(value["type"] == "mesh");
+        AKANE_REQUIRE(value["type"] == "mesh");
 
         PrimitiveDesc result{};
 
         // parse mesh
-        auto obj_filename = ParseJson_String(value["obj_file"]);
-        auto& cached_item = mesh_cache[obj_filename];
+        string obj_filename = value["obj_file"];
+        auto& cached_item   = mesh_cache[obj_filename];
         if (cached_item == nullptr)
         {
             cached_item = LoadMeshDesc(obj_filename);
@@ -246,20 +223,9 @@ namespace akane
         auto transform_config = value["transform"];
         AKANE_REQUIRE(transform_config.is_object());
 
-        result.rotation[0] = transform_config.value<float>("rotate_x", 0.f) / 180.f * kPi;
-        result.rotation[1] = transform_config.value<float>("rotate_y", 0.f) / 180.f * kPi;
-        result.rotation[2] = transform_config.value<float>("rotate_z", 0.f) / 180.f * kPi;
-
-        if (transform_config["position"].is_object())
-        {
-            result.position = ParseJson_Point3f(transform_config["position"]);
-        }
-        else
-        {
-            result.position = Point3f{0.f, 0.f, 0.f};
-        }
-
-        result.scale = transform_config.value<float>("scale", 1.f);
+        result.rotation = transform_config.value<Vec3>("rotation", {}) / 180.f * kPi;
+        result.position = transform_config.value<Vec3>("position", {});
+        result.scale    = transform_config.value<float>("scale", 1.f);
 
         // finalize
         return result;
@@ -272,14 +238,15 @@ namespace akane
         unordered_map<string, shared_ptr<MeshDesc>> mesh_cache;
 
         auto result    = make_unique<SceneDesc>();
-        result->name   = ParseJson_String(config["name"]);
+        result->name   = config["name"];
         result->camera = ParseJson_CameraDesc(config["camera"]);
 
         auto scene_config = config["scene"];
-        AKANE_REQUIRE(scene_config.is_array());
-        for (const auto& value : scene_config)
+        auto primitives   = scene_config["primitives"];
+        AKANE_REQUIRE(primitives.is_array());
+        for (const auto& item : primitives)
         {
-            result->objects.push_back(ParseJson_PrimitiveDesc(value, mesh_cache));
+            result->objects.push_back(ParseJson_PrimitiveDesc(item, mesh_cache));
         }
 
         return result;

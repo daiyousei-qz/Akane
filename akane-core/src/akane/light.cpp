@@ -7,20 +7,28 @@ namespace akane
     bool LightSample::TestVisibility(const Scene& scene, Workspace& workspace, const Vec3& p,
                                      const Primitive* obj) const
     {
-        auto test_ray = GenerateTestRay(p);
-        if (normal_ != Vec3{0.f} && Dot(normal_, test_ray.d) < 0)
+        if (global_)
         {
-            // from back side of the light source
-            return false;
+            IntersectionInfo isect;
+            return !scene.Intersect(GenerateShadowRay(p), workspace, isect);
         }
-
-        IntersectionInfo isect;
-        if (!scene.Intersect(GenerateTestRay(p), workspace, isect))
+        else
         {
-            // no intersection with original primitive
-            return false;
-        }
+            auto test_ray = GenerateTestRay(p);
+            if (normal_ != Vec3{0.f} && Dot(normal_, test_ray.d) < 0)
+            {
+                // from back side of the light source
+                return false;
+            }
 
-        return SamePrimitive(obj, isect.object) && (isect.point - p).LengthSq() < 0.001f;
+            IntersectionInfo isect;
+            if (!scene.Intersect(test_ray, workspace, isect))
+            {
+                // no intersection with original primitive
+                return false;
+            }
+
+            return SamePrimitive(obj, isect.object) && (isect.point - p).LengthSq() < 0.001f;
+        }
     }
 } // namespace akane

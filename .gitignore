@@ -265,3 +265,8 @@ CmakeSettings.json
 
 # Local Code Stash
 stash/
+
+# vscode stuffs
+.vs/
+.vscode/
+build/

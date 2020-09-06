@@ -3,12 +3,12 @@
 #include "akane/math/sampling.h"
 #include "akane/ray.h"
 
-namespace akane
+namespace akane::shape
 {
     class Sphere
     {
     public:
-        Sphere(Vec3 center, float radius) : center_(center), radius_(radius)
+        constexpr Sphere(Vec3 center, float radius) : center_(center), radius_(radius)
         {
         }
 

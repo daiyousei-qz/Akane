@@ -57,7 +57,12 @@ namespace akane
         uint64_t s[4]; // engine state
     };
 
-    inline float SampleUniformReal(RandomEngine& engine)
+    /**
+     * Uniformly samples a float in [0, 1)
+     *
+     * @param engine PRNG that sources entropy
+     */
+    inline float SampleUniformFloat(RandomEngine& engine)
     {
         uint32_t u = static_cast<uint32_t>(engine.Next() >> (64 - 23));
         u |= 0x7fu << 23;
@@ -72,14 +77,25 @@ namespace akane
         // return static_cast<float>(engine.Next() & mask) * unit;
     }
 
-    inline Point2f SampleUniformReal2D(RandomEngine& engine)
+    /**
+     * Uniformly samples a point in unit squere where both x and y are in [0, 1)
+     *
+     * @param engine PRNG that sources entropy
+     */
+    inline Point2f SampleUniformFloat2D(RandomEngine& engine)
     {
-        return Point2f{SampleUniformReal(engine), SampleUniformReal(engine)};
+        return Point2f{SampleUniformFloat(engine), SampleUniformFloat(engine)};
     }
 
+    /**
+     * Samples a boolean value
+     *
+     * @param engine PRNG that sources entropy
+     * @param prob Probability that **true** is returned
+     */
     inline float SampleBool(RandomEngine& engine, float prob)
     {
-        return SampleUniformReal(engine) < prob;
+        return SampleUniformFloat(engine) < prob;
     }
 
 } // namespace akane

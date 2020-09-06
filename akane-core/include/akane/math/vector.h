@@ -8,6 +8,7 @@ namespace akane
     template <typename Float, size_t N> struct Vec
     {
         static_assert(std::is_floating_point_v<Float>);
+        static_assert(N > 0);
 
         std::array<Float, N> data;
 
@@ -256,4 +257,36 @@ namespace akane
 #undef APPLY_BINARY_OPSET
 #undef MAKE_ASSIGN_OP
 
+    template <typename Float, size_t N> void to_json(nlohmann::json& j, const Vec<Float, N>& v)
+    {
+        j = nlohmann::json(v.begin(), v.end());
+    }
+    template <typename Float, size_t N> void from_json(const nlohmann::json& j, Vec<Float, N>& v)
+    {
+        AKANE_REQUIRE(j.is_array() && j.size() == N);
+        for (int i = 0; i < N; ++i)
+        {
+            j.at(i).get_to(v[i]);
+        }
+    }
+
 } // namespace akane
+
+template <typename Float, size_t N> struct fmt::formatter<akane::Vec<Float, N>>
+{
+    constexpr auto parse(fmt::format_parse_context& ctx)
+    {
+        // TODO
+        return ctx.end();
+    }
+
+    template <typename FormatContext> auto format(const akane::Vec<Float, N>& v, FormatContext& ctx)
+    {
+        fmt::format_to(ctx.out(), "Vec({}", v[0]);
+        for (int i = 1; i < N; ++i)
+        {
+            fmt::format_to(ctx.out(), ", {}", v[i]);
+        }
+        fmt::format_to(ctx.out(), ")");
+    }
+};

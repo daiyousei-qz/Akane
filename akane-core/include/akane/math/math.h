@@ -44,7 +44,7 @@ namespace akane
         return Vec3{p[0], p[1], p[2]};
     }
 
-    constexpr float kPi       = 3.1415925f;
+    constexpr float kPi       = 3.1415926535f;
     constexpr float kInvPi    = 1.f / kPi;
     constexpr float kTwoPi    = 2.f * kPi;
     constexpr float kInvTwoPi = 1.f / kTwoPi;

@@ -9,19 +9,14 @@ namespace akane
         NormalMappedIntegrator() = default;
 
         virtual Spectrum Li(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
-            const Ray& camera_ray) const override
+                            const Ray& camera_ray) const override
         {
             ctx.workspace.Clear();
 
             IntersectionInfo isect;
             if (scene.Intersect(camera_ray, ctx.workspace, isect))
             {
-                //if (isect.area_light)
-                //{
-                //    return Spectrum(kFloatOne);
-                //}
-
-                return (isect.ns.Normalized() + Vec3{ 1.f, 1.f, 1.f }) / 2.f;
+                return (isect.ns.Normalized() + Vec3{1.f, 1.f, 1.f}) / 2.f;
             }
             else
             {
@@ -29,4 +24,4 @@ namespace akane
             }
         }
     };
-}
+} // namespace akane

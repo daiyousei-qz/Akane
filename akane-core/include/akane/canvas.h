@@ -6,14 +6,16 @@
 
 namespace akane
 {
-    // film where a scene is rendered
+    /**
+     * Film buffer where a rendered scene is written
+     */
     class Canvas
     {
     public:
         Canvas(int width, int height) : width_(width), height_(height)
         {
             AKANE_ASSERT(width > 0 && height > 0);
-            data_.resize(width * height * 3, 0.);
+            buffer_.resize(width * height * 3, 0.);
         }
 
         int Width() const noexcept
@@ -28,14 +30,14 @@ namespace akane
         void Set(const Canvas& other)
         {
             AKANE_REQUIRE(width_ == other.width_ && height_ == other.height_);
-            std::copy(other.data_.begin(), other.data_.end(), data_.begin());
+            std::copy(other.buffer_.begin(), other.buffer_.end(), buffer_.begin());
         }
         void Increment(const Canvas& other)
         {
             AKANE_REQUIRE(width_ == other.width_ && height_ == other.height_);
-            for (size_t i = 0; i < data_.size(); ++i)
+            for (size_t i = 0; i < buffer_.size(); ++i)
             {
-                data_[i] += other.data_[i];
+                buffer_[i] += other.buffer_[i];
             }
         }
 
@@ -45,9 +47,9 @@ namespace akane
             AKANE_ASSERT(y >= 0 && y < height_);
             size_t offset = 3 * (y * width_ + x);
 
-            data_[offset]      = color[0];
-            data_[offset + 1u] = color[1];
-            data_[offset + 2u] = color[1];
+            buffer_[offset]      = color[0];
+            buffer_[offset + 1u] = color[1];
+            buffer_[offset + 2u] = color[1];
         }
         void IncrementPixel(int x, int y, Spectrum delta)
         {
@@ -55,9 +57,9 @@ namespace akane
             AKANE_ASSERT(y >= 0 && y < height_);
             size_t offset = 3 * (y * width_ + x);
 
-            data_[offset] += delta[0];
-            data_[offset + 1u] += delta[1];
-            data_[offset + 2u] += delta[2];
+            buffer_[offset] += delta[0];
+            buffer_[offset + 1u] += delta[1];
+            buffer_[offset + 2u] += delta[2];
         }
         Spectrum GetPixel(int x, int y)
         {
@@ -65,12 +67,12 @@ namespace akane
             AKANE_ASSERT(y >= 0 && y < height_);
             size_t offset = 3 * (y * width_ + x);
 
-            return Spectrum{data_[offset], data_[offset + 1u], data_[offset + 2u]};
+            return Spectrum{buffer_[offset], buffer_[offset + 1u], buffer_[offset + 2u]};
         }
 
         void Clear()
         {
-            std::fill(data_.begin(), data_.end(), 0.);
+            std::fill(buffer_.begin(), buffer_.end(), 0.);
         }
 
         void SaveRaw(const std::string& filename, float scalar = 1.f);
@@ -79,6 +81,6 @@ namespace akane
     private:
         int width_;
         int height_;
-        std::vector<float> data_;
+        std::vector<float> buffer_;
     };
 } // namespace akane

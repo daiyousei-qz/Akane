@@ -9,13 +9,25 @@ namespace akane
     constexpr Vec3 kBsdfNormal = Vec3{0.f, 0.f, 1.f};
 
     // create transform from **world coordinate** to **bsdf local coordinate**
+    // TODO: this transform only support non-polarized bsdf
     inline Transform CreateBsdfCoordTransform(Vec3 n)
     {
-        auto nz = n.Normalized();
-        auto nx = Vec3{ n.Y(), -n.X(), 0.f }.Normalized();
-        auto ny = Cross(n, nx);
+        if (n.X() != 0 || n.Y() != 0)
+        {
+            Vec3 nz = n.Normalized();
+            Vec3 nx = Vec3{n.Y(), -n.X(), 0.f}.Normalized();
+            Vec3 ny = Cross(n, nx);
 
-        return Transform(nx, ny, nz);
+            return Transform(nx, ny, nz);
+        }
+        else
+        {
+            Vec3 nz = n.Normalized();
+            Vec3 nx = Vec3{n.Z() > 0 ? 1.f : -1.f, 0.f, 0.f};
+            Vec3 ny = Vec3{0.f, 1.f, 0.f};
+
+            return Transform(nx, ny, nz);
+        }
     }
 
     inline bool SameHemisphere(const Vec3& wo, const Vec3& wi) noexcept

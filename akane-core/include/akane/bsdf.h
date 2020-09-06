@@ -14,19 +14,19 @@ namespace akane
             None = 0,
 
             // major category: BRDF or BTDF
-            Reflection = 1,
+            Reflection   = 1,
             Transmission = 2,
 
             // sub-category
-            Diffuse = 4,
-            Glossy = 8,
+            Diffuse  = 4,
+            Glossy   = 8,
             Specular = 16,
 
             // quick access
-            Any = Reflection | Transmission | Diffuse | Glossy | Specular,
-            DiffuseRefl = Reflection | Diffuse,
-            GlossyRefl = Reflection | Glossy,
-            SpecularRefl = Reflection | Specular,
+            Any                  = Reflection | Transmission | Diffuse | Glossy | Specular,
+            DiffuseRefl          = Reflection | Diffuse,
+            GlossyRefl           = Reflection | Glossy,
+            SpecularRefl         = Reflection | Specular,
             SpecularTransmission = Reflection | Transmission | Specular
         };
 
@@ -39,7 +39,7 @@ namespace akane
 
         constexpr BsdfType Also(BsdfType type) const noexcept
         {
-            return BsdfType{ value_ | type.value_ };
+            return BsdfType{value_ | type.value_};
         }
 
         constexpr bool Contain(BsdfType flag) const noexcept
@@ -60,8 +60,12 @@ namespace akane
         FlagType value_ = None;
     };
 
-    // implementation interface for generic BSDF
-    // normal vector is assumed to be (0, 0, 1)
+    /**
+     * Interface for a bidirectional scattering distribution function
+     *
+     * Note surface normal vector is assumed to be (0, 0, 1), where volume above z-plane
+     * is outside the surface and below is inside
+     */
     class Bsdf
     {
     public:
@@ -82,7 +86,7 @@ namespace akane
 
         // samples a wi and evaluate f_r(wo, wi)
         virtual Spectrum SampleAndEval(const Point2f& u, const Vec3& wo, Vec3& wi_out,
-            float& pdf_out) const noexcept = 0;
+                                       float& pdf_out) const noexcept = 0;
 
         virtual float Pdf(const Vec3& wo, const Vec3& wi) const noexcept = 0;
 

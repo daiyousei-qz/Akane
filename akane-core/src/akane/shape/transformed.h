@@ -4,12 +4,12 @@
 #include "akane/math/transform.h"
 #include "akane/ray.h"
 
-namespace akane
+namespace akane::shape
 {
     template <typename ShapeType> class TransformedShape
     {
     public:
-        TransformedShape(ShapeType shape, Vec3 rotation = 0.f) : shape_(shape)
+        constexpr TransformedShape(ShapeType shape, Vec3 rotation = 0.f) : shape_(shape)
         {
             transform_ =
                 Transform::CreateRotateX(rotation[0]).RotateY(rotation[1]).RotateZ(rotation[2]);

@@ -2,11 +2,9 @@
 
 namespace akane
 {
-    Spectrum PathTracingIntegrator::SampleAllDirectLight(RenderingContext& ctx, Sampler& sampler,
-                                                         const Scene& scene,
-                                                         const IntersectionInfo& isect,
-                                                         const Vec3& wo, const Bsdf& bsdf,
-                                                         const Transform& world2local) const
+    Spectrum SampleAllDirectLight(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
+                                  const IntersectionInfo& isect, const Vec3& wo, const Bsdf& bsdf,
+                                  const Transform& world2local)
     {
         Spectrum total_ld = 0.f;
         for (auto light : scene.GetLightVec())
@@ -29,11 +27,10 @@ namespace akane
         return total_ld;
     }
 
-    Spectrum PathTracingIntegrator::SampleRandomDirectLight(RenderingContext& ctx, Sampler& sampler,
-                                                            const Scene& scene,
-                                                            const IntersectionInfo& isect,
-                                                            const Vec3& wo, const Bsdf& bsdf,
-                                                            const Transform& world2local) const
+    // TODO: this function is buggy (return nan)
+    Spectrum SampleRandomDirectLight(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
+                                     const IntersectionInfo& isect, const Vec3& wo,
+                                     const Bsdf& bsdf, const Transform& world2local)
     {
         float light_choice_pdf;
         auto light = scene.SampleLight(sampler.Get1D(), light_choice_pdf);
@@ -58,6 +55,32 @@ namespace akane
         return kBlackSpectrum;
     }
 
+    Spectrum SampleGlobalLight(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
+                               const IntersectionInfo& isect, const Vec3& wo, const Bsdf& bsdf,
+                               const Transform& world2local)
+    {
+        Light* global_light = scene.GetGlobalLight();
+
+        if (global_light != nullptr)
+        {
+            auto sample = global_light->SampleLi(sampler.Get2D());
+
+            if (sample.TestVisibility(scene, ctx.workspace, isect.point, isect.object))
+            {
+                auto shadow_ray = sample.GenerateShadowRay(isect.point);
+                auto wi         = world2local.ApplyLinear(shadow_ray.d);
+
+                // direct radiance from light source
+                auto f  = bsdf.Eval(wo, wi) * abs(wi.Dot(kBsdfNormal));
+                auto ld = global_light->Eval(shadow_ray);
+
+                return f * ld;
+            }
+        }
+
+        return kBlackSpectrum;
+    }
+
     Spectrum PathTracingIntegrator::Li(RenderingContext& ctx, Sampler& sampler, const Scene& scene,
                                        const Ray& camera_ray) const
     {
@@ -74,7 +97,7 @@ namespace akane
             if (!scene.Intersect(ray, ctx.workspace, isect))
             {
                 // blend global lighting
-                for (auto global_light : scene.GetGlobalLightVec())
+                if (auto global_light = scene.GetGlobalLight(); global_light != nullptr)
                 {
                     result += contrib * global_light->Eval(ray);
                 }
@@ -113,8 +136,11 @@ namespace akane
             // estimate direct light
             if (!is_specular_bsdf)
             {
-                result += contrib * SampleRandomDirectLight(ctx, sampler, scene, isect, bsdf_wo,
-                                                            *bsdf, world2local);
+                result += contrib * SampleGlobalLight(ctx, sampler, scene, isect, bsdf_wo, *bsdf,
+                                                      world2local);
+
+                result += contrib * SampleAllDirectLight(ctx, sampler, scene, isect, bsdf_wo, *bsdf,
+                                                         world2local);
             }
 
             // sample bsdf

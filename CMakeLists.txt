@@ -5,7 +5,7 @@ project(Akane CXX)
 set(CMAKE_CXX_STANDARD 17)
 
 if(MSVC)
-    add_compile_options(/Zc:__cplusplus)
+    add_compile_options(/Zc:__cplusplus /std:c++latest)
 endif()
 
 # ==============================================================================

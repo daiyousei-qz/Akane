@@ -12,14 +12,14 @@ namespace akane
         {
             AKANE_REQUIRE(bsdf != nullptr);
             bsdf_list_[bsdf_n_++] = bsdf;
-            type_ = type_.Also(bsdf->GetType());
+            type_                 = type_.Also(bsdf->GetType());
         }
 
         virtual Spectrum Eval(const Vec3& wo, const Vec3& wi) const noexcept
         {
             auto is_reflection = SameHemisphere(wo, wi);
 
-            int n = 0;
+            int n      = 0;
             Spectrum f = kBlackSpectrum;
             for (int i = 0; i < bsdf_n_; ++i)
             {
@@ -43,17 +43,15 @@ namespace akane
         }
 
         virtual Spectrum SampleAndEval(const Point2f& u, const Vec3& wo, Vec3& wi_out,
-            float& pdf_out) const noexcept
+                                       float& pdf_out) const noexcept
         {
-            static auto su = u;
-            su = u;
-            int index = floor(u[0] * bsdf_n_);
-            auto sample_bsdf = bsdf_list_[index];
-            auto u2 = Point2f{ u[0] * bsdf_n_ - index, u[1] };
+            int index         = static_cast<int>(floor(u[0] * bsdf_n_));
+            Bsdf* sample_bsdf = bsdf_list_[index];
+            Point2f u2        = Point2f{u[0] * bsdf_n_ - index, u[1]};
 
             Vec3 wi;
             float pdf;
-            auto f = sample_bsdf->SampleAndEval(u2, wo, wi, pdf);
+            Spectrum f = sample_bsdf->SampleAndEval(u2, wo, wi, pdf);
 
             if (pdf == 0)
             {
@@ -61,8 +59,8 @@ namespace akane
                 return kBlackSpectrum;
             }
 
-            auto is_reflection = SameHemisphere(wo, wi);
-            int n = 1;
+            bool is_reflection = SameHemisphere(wo, wi);
+            int n              = 1;
             for (int i = 0; i < bsdf_n_; ++i)
             {
                 auto bsdf = bsdf_list_[i];
@@ -79,21 +77,21 @@ namespace akane
                 n += 1;
             }
 
-            wi_out = wi;
+            wi_out  = wi;
             pdf_out = pdf / static_cast<float>(n);
             return f / static_cast<float>(n);
         }
 
         virtual float Pdf(const Vec3& wo, const Vec3& wi) const noexcept
         {
-            auto is_reflection = SameHemisphere(wo, wi);
+            bool is_reflection = SameHemisphere(wo, wi);
 
-            int n = 0;
+            int n     = 0;
             float pdf = 0;
             for (int i = 0; i < bsdf_n_; ++i)
             {
-                auto bsdf = bsdf_list_[i];
-                auto type = bsdf->GetType();
+                Bsdf* bsdf    = bsdf_list_[i];
+                BsdfType type = bsdf->GetType();
 
                 if ((is_reflection && type.ContainReflection()) ||
                     (!is_reflection && type.ContainTransmission()))
@@ -112,7 +110,7 @@ namespace akane
         }
 
     private:
-        int bsdf_n_ = 0;
+        int bsdf_n_         = 0;
         Bsdf* bsdf_list_[8] = {};
     };
 } // namespace akane
